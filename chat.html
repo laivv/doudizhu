@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="format-detection" content="telephone=no">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+	<title>在线聊天室</title>
+	<link rel="stylesheet" href="css/base.css">
+
+<body>
+<style>
+	.msg-box{
+		width: 560px;
+		border: solid 1px #aaa;
+		left: 40%;
+		top: 30%;
+		background: #fff;
+		display: none;
+	}
+	.msg-header{
+		height: 30px;
+		background: #eee;
+		padding: 0 5px;
+		font-size: 14px;
+		line-height: 30px;
+		cursor: move;
+	}
+	.msg-close{
+		top: 0px;
+		right: 0px;
+		font-size: 16px;
+		height: 30px;
+		width: 30px;
+		line-height: 30px;
+	}
+	.msg-close:hover{
+		color: #000;
+	}
+	.msg-body{
+		
+		/* overflow-x: hidden;
+		overflow-y: auto; */
+		padding:5px;
+	}
+	.msg-item{
+		margin-top: 30px;
+	}
+	.msg-item.to{
+		text-align: right;
+	}
+	.msg-head{
+		height: 50px;
+		width: 50px;
+	
+		
+	}
+	.msg-item.from .msg-head{
+		left: 0;
+		
+	}
+	.msg-item.to .msg-head{
+		right: 0;
+	}
+
+	.msg-info{
+		
+		padding: 5px;
+	
+		font-size: 14px;
+	}
+
+	.msg-item.from .msg-info{
+		margin-left: 70px;
+		background:#F7F7F7;
+		
+	}
+	.msg-item.to .msg-info{
+		margin-right: 70px;
+		background:#00aaee;
+	}
+
+
+
+	.msg-arrow{
+		height: 20px;
+		width: 20px;
+		top: 7px;
+		-webkit-transform: rotate(45deg);transform: rotate(45deg);
+	}
+
+	.msg-item.from .msg-arrow{
+		left: -6px;
+		background: #F7F7F7;
+	}
+	.msg-item.to .msg-arrow{
+		right: -6px;
+		background: #00aaee;
+	}
+	.msg-item.to .nick-head{
+		color: red;
+	}
+
+	.msg-detail
+	{
+		z-index: 2;
+		min-height: 24px;
+		min-width: 30px;
+		word-break: break-all;
+	}
+	.msg-item.to .msg-detail{
+		color: #fff;
+		font-weight: bold;
+	}
+	.msg-item.from .msg-head{
+		color: #aaa;
+		
+	}
+	.msg-tool{
+		height: 30px;
+		background: #eee;
+	}
+	.msg-form{
+		resize: none;
+		height: 95px;
+
+	}
+	.msg-form.error{
+		border: solid 1px red;
+	}
+	.msg-footer{
+		padding: 5px;
+		background: #eee;
+	}
+	.msg-send{
+		padding:0 30px;
+
+	}
+	.msg-sys{
+		text-align: center;
+		color: #bbb;
+		font-size: 12px;
+	}
+	.msg-sys>span{
+		vertical-align: top;
+		color: red;
+	}
+	.nick-input{
+
+	}
+	.login-wrap{
+		height: 200px;
+		width: 300px;
+		background: #fff;
+	}
+	.login-box{
+		display: block;
+	}
+	.nick-head{
+		background: #fff;
+		bottom: -10px!important;
+		text-align: center;
+		padding-top: 5px;
+	}
+	.form-wrap
+	{
+		height: 40px;
+	}
+	.full-y{
+		height: 100%;
+	}
+	.btn-login{
+		padding: 0 15px;
+	}
+	.login-title
+	{
+		padding: 20px 0;
+	}
+	.msg-scroll
+	{
+		height: 220px;
+		overflow-x: hidden;
+		overflow-y: auto;}
+
+		@media screen and (max-width: 560px){
+			.msg-box{
+				width: 100%;
+				height: 100%;
+				top: 0;
+				left: 0;
+
+			}
+			.msg-scroll{
+				position: absolute;
+				top: 30px;
+				bottom: 160px;
+				left: 0;right: 0;
+				height: auto;
+			}
+			.msg-send{
+				width: 100%;
+			}
+			.msg-tool{
+				position: absolute;
+				bottom: 130px;
+			}
+			.msg-form{
+				position: absolute;
+				bottom: 35px;
+				width: 100%;
+
+			}
+			.msg-footer{
+				position: absolute;
+				bottom: 0px;
+				background: transparent;
+			}
+		}
+</style>
+
+<div class="mask login-box">
+	
+	<div class="p-a-c login-wrap">
+		<h3 class="row txt-c login-title">登录聊天室</h3>
+		<div class="p-a-c row item-c form-wrap">
+		<input type="text" class="nick-input full-y" placeholder="给自己取个昵称" id="nick">
+		<button class="btn btn-green full-y btn-lg btn-login" id="btn-login">确定</button>
+		</div>
+	</div>
+</div>
+	<div class="msg-box p-a" id="msg-box">
+		<div class="row msg-header p-r b-box b">
+			聊天室 - 当前在线:<span id="count-people"></span>人
+			<span class="p-a msg-close c-pt d-b txt-c" id="msg-close">×</span>
+		</div>
+		<div class="msg-scroll row" id="msg-scroll">
+		<ul class="row msg-body b-box" id="msg-body">
+
+
+
+		</ul>
+		</div>
+		<div class="row msg-tool">
+			
+		</div>
+		<div class="row msg-form b-box">
+			<textarea class="row msg-form b-box" placeholder="输入消息，点击发送按钮或按ctrl+Enter发送" id="msg-content"></textarea>
+		</div>
+		<div class="row msg-footer txt-r b-box">
+			<button class="btn btn-blue msg-send" id="msg-send">发送</button>
+		</div>
+		
+	</div>
+	<script type="text/template" id="template">
+			<li class="msg-item to p-r">
+				<div class="msg-head p-a">
+					<!-- <img src="p.jpg" class="full"> -->
+					<div class="row nick-head clip" title="{NICK}">{NICK}</div>
+				</div>
+				<div class="b-box msg-info radius-3 d-ib p-r">
+					<span class="msg-arrow d-b p-a"></span>
+					<div class="d-ib p-r msg-detail">
+						{CONTENT}
+					</div>
+				</div>
+				
+			</li>
+	</script>
+	<script type="text/template" id="template-2">
+			<li class="msg-item from p-r">
+				<div class="msg-head p-a">
+				<!-- 	<img src="p.jpg" class="full"> -->
+					<div class="row nick-head clip" title="{NICK}">{NICK}</div>
+				</div>
+				<div class="b-box msg-info radius-3 d-ib p-r">
+					<span class="msg-arrow d-b p-a"></span>
+					<div class="d-ib p-r msg-detail">
+						{CONTENT}
+					</div>
+				</div>
+				
+			</li>
+	</script>
+	<script src="js/jquery-1.11.3.min.js"></script>
+	<script src="js/jq-DragMove.js"></script>
+
+
+	<script>
+
+
+
+(function($,Drag,layer,io){
+
+	var APP ={
+
+			template:{
+				sendmessage:  $("#template").html(),
+				message:  $("#template-2").html(),
+				sysmessage : '<li class="msg-item msg-sys">{CONTENT}</li>'
+			},
+			$elements:{
+				msgBox : $('#msg-box'),
+				loginBox : $(".login-box"),
+				nick : $("#nick"),
+				msgForm : $('#msg-content'),
+				countPeople : $("#count-people"),
+				msgMain : $('#msg-scroll'),
+				msgBody : $("#msg-body")
+			},
+
+			ws : null,
+			nick : null,
+
+			renderMsg : function(type,message){
+				var tpl = this.template[type],
+					msgBody = this.$elements.msgBody,
+					msgMain = this.$elements.msgMain;
+
+				if(type === 'message')
+				{
+					msgBody.append(tpl.replace('{CONTENT}',message.msg).replace(/\{NICK\}/g,message.nick));		
+				}
+				if(type === 'sysmessage'){
+					msgBody.append(tpl.replace('{CONTENT}',message.msg));
+					this.$elements.countPeople.text(message.count);
+				}
+				if(type === 'sendmessage')
+				{
+					msgBody.append(tpl.replace('{CONTENT}',message).replace(/\{NICK\}/g,this.nick));
+				}
+				msgMain.scrollTop(msgBody.height());
+			},
+
+
+			sendMsg:function (){
+				var msgForm = this.$elements.msgForm;
+				var msg = $.trim(msgForm.val());
+
+				if(!msg){
+					msgForm.addClass('error').blur();
+					return;
+				}
+				msg = msg.replace(/\n/g,'<br>');
+				msgForm.val('');
+				this.renderMsg('sendmessage',msg);
+				this.ws.emit('message',msg);
+			},
+
+
+
+			login:function(){
+					this.nick = $.trim(this.$elements.nick.val());
+					errinfo = false;
+					(this.nick === '')&&(errinfo ='请输入昵称');
+					(this.nick.length > 10) &&(errinfo = '昵称不能超过10个字符');
+					if(errinfo)
+					{
+						layer.tips(errinfo, '#nick', { tips: [1, '#3595CC'],time: 2000});
+						return ;
+					}
+
+					var _this = this;
+					if(this.ws === null){
+
+						this.ws = io.connect('ws://'+location.host);
+						this.ws.on('loginfail',function(data){
+							layer.tips(data, '#nick', {
+							  tips: [1, '#3595CC'],
+							  time: 2000
+							});
+							_this.ws.close();
+							_this.ws = null;
+						});
+						this.ws.on('loginsuccess',function(){
+							_this.$elements.loginBox.hide();
+							_this.$elements.msgBox.show();
+							_this.$elements.msgBody.empty();
+							_this.$elements.msgForm.val('');
+							_this.$elements.msgMain.scrollTop(_this.$elements.msgBody.height());
+							
+						});
+				
+						this.ws.on('message',function(data){
+							_this.renderMsg('message',data)
+						});
+
+						this.ws.on('sysmessage',function(data){
+							_this.renderMsg('sysmessage',data)
+						});
+						
+					}
+					this.ws.emit('login',this.nick);
+			},
+
+			loginout:function(){
+				this.$elements.msgBox.hide();
+				this.$elements.loginBox.show();
+				this.ws.close();
+				this.ws = null;
+			},
+
+			init:function(){
+
+					$('#btn-login').on('click',function(){
+						APP.login();
+					});
+
+					$("#msg-send").on('click',function(){
+						APP.sendMsg();
+					});
+
+					$('#msg-close').on('click',function(){
+						APP.loginout();
+					});
+
+					var _this = this;
+					this.$elements.msgForm.on('keyup',function(e){
+						if(e.ctrlKey && e.keyCode == 13){
+							_this.sendMsg();
+						}	
+					}).on('focus',function(){
+						$(this).removeClass('error');
+					});
+					(new Drag($(".msg-header")[0],$('.msg-box')[0])).drag();
+
+			}
+
+		}
+
+		APP.init();
+})(jQuery,DragMove,layer,io);
+
+
+	</script>
+</body>
+</html>
