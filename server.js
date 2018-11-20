@@ -1,12 +1,13 @@
-var express = require('express'),
+const express = require('express'),
 	app = express(),
 	http = require('http').Server(app),
 	io = require('socket.io')(http);
-app.use(express.static(__dirname + '/static'));
+app.use(express.static(`${__dirname}/static`));
 app.get('/', function (req, res) {
-	res.sendFile(__dirname + '/index.html');
+	res.sendFile(`${__dirname}/index.html`);
 });
-var deskList = [
+
+const deskList = [
 	{
 		deskId: 1,
 		positions: [
@@ -48,13 +49,20 @@ var deskList = [
 		]
 	}
 ];
+
+function time(){
+	return (new Date()).toLocaleTimeString();
+}
+
+
+
 function GameServer(port) {
 	this.clients = [];
 	this.port = port;
 	this.desks = deskList;
 }
-var proto = {
-	broadCastHouse: function (event, data, socket) {
+const proto = {
+	broadCastHouse(event, data, socket) {
 		socket = socket === undefined ? null : socket;
 		this.clients.forEach((client, index) => {
 			if (client.deskId === '') {
@@ -72,8 +80,8 @@ var proto = {
 		});
 	},
 	getDesk(deskId) {
-		for (var i = 0, len = this.desks.length; i < len; i++) {
-			var desk = this.desks[i];
+		for (let i = 0, len = this.desks.length; i < len; i++) {
+			let desk = this.desks[i];
 			if (desk.deskId == deskId) {
 				return desk;
 			}
@@ -81,15 +89,15 @@ var proto = {
 		return null;
 	},
 	getPosition(desk, posId) {
-		for (var i = 0, len = desk.positions.length; i < len; i++) {
-			var position = desk.positions[i];
+		for (let i = 0, len = desk.positions.length; i < len; i++) {
+			let position = desk.positions[i];
 			if (position.id == posId) {
 				return position;
 			}
 		}
 		return null;
 	},
-	isEmptyPos: function (deskId, posId) {
+	isEmptyPos(deskId, posId) {
 		const desk = this.getDesk(deskId);
 		if (!desk) {
 			return false;
@@ -97,7 +105,7 @@ var proto = {
 		const position = this.getPosition(desk, posId);
 		return position && position.isEmpty;
 	},
-	updatePosStatus: function (deskId, posId, isEmpty) {
+	updatePosStatus(deskId, posId, isEmpty) {
 		const desk = this.getDesk(deskId);
 		if (desk) {
 			const position = this.getPosition(desk, posId);
@@ -106,20 +114,20 @@ var proto = {
 			}
 		}
 	},
-	removeClient: function (socket) {
-		for (var i = 0, len = this.clients.length; i < len; i++) {
+	removeClient(socket) {
+		for (let i = 0, len = this.clients.length; i < len; i++) {
 			if (this.clients[i].socket === socket) {
 				this.clients.splice(i, 1);
 				break;
 			}
 		}
 	},
-	addClient: function (socket, data) {
+	addClient(socket, data) {
 		this.clients.push({ userName: '游客', socket: socket, deskId: '', posId: '' });
 	},
 	getClient(socket) {
-		for (var i = 0, len = this.clients.length; i < len; i++) {
-			var client = this.clients[i];
+		for (let i = 0, len = this.clients.length; i < len; i++) {
+			let client = this.clients[i];
 			if (client.socket == socket) {
 				return client;
 			}
@@ -127,39 +135,39 @@ var proto = {
 		return null;
 	},
 	updateClientState(socket, deskId, posId) {
-		var client = this.getClient(socket)
+		let client = this.getClient(socket)
 		if (client) {
 			client.deskId = deskId !== undefined ? deskId : '';
 			client.posId = posId !== undefined ? posId : '';
 		}
 	},
-	getUserName: function (socket) {
-		for (var i = 0, len = this.clients.length; i < len; i++) {
+	getUserName(socket) {
+		for (let i = 0, len = this.clients.length; i < len; i++) {
 			if (this.clients[i].socket == socket) {
 				return this.clients[i].nick;
 			}
 		}
 		return null;
 	},
-	checkUserName: function (userName) {
-		for (var i = 0, len = this.clients.length; i < len; i++) {
+	checkUserName(userName) {
+		for (let i = 0, len = this.clients.length; i < len; i++) {
 			if (this.clients[i].userName === userName) {
 				return true;
 			}
 		}
 		return false;
 	},
-	init: function () {
+	init() {
 		io.on('connection', socket => {
 			this.addClient(socket);
 			socket.emit('LOGIN_SUCCESS', this.desks);
-			console.log('有客户端进入大厅 %s', (new Date()).toLocaleTimeString());
+			console.log('有客户端进入大厅 %s', time());
 
 			socket.on('SITDOWN', data => {
 				const { deskId, posId } = data;
 				//检查该座位是否是空闲状态
 				if (this.isEmptyPos(deskId, posId)) {
-					console.log('有客户端进入房间，桌号：%s，座位：%s，时间： %s', deskId, posId, (new Date()).toLocaleTimeString());
+					console.log('有客户端进入房间，桌号：%s，座位：%s，时间： %s', deskId, posId, time());
 					//更新座位状态为占用
 					this.updatePosStatus(deskId, posId, false);
 					//绑定客户端桌号，座位号
@@ -182,7 +190,7 @@ var proto = {
 			socket.on('UNSITDOWN', data => {
 				const client = this.getClient(socket);
 				const { deskId, posId } = client;
-				console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, ((new Date()).toLocaleTimeString()));
+				console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, time());
 				this.updatePosStatus(deskId, posId, true);
 				this.updateClientState(socket);
 				socket.emit('UNSITDOWN_SUCCESS', this.desks);
@@ -195,17 +203,17 @@ var proto = {
 				this.removeClient(socket);
 				this.updatePosStatus(deskId, posId, true);
 				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, isEmpty: true });
-				console.log('有客户端断开了连接 %s', (new Date()).toLocaleTimeString());
+				console.log('有客户端断开了连接 %s', time());
 			})
 		});
 
 
 		http.listen(this.port, () => {
 			console.log(`server is running on port ${this.port}`);
-			(require('os').platform() == 'win32') && require('child_process').exec(`start http://localhost:${this.port}/index.html`);//自动打开默认网址，方便测试用
+			(require('os').platform() == 'win32') && require('child_process').exec(`start http://localhost:${this.port}/index.html`);
 		});
 	}
 }
 Object.assign(GameServer.prototype, proto);
-var gameServer = new GameServer(8001);
+const gameServer = new GameServer(8001);
 gameServer.init();
