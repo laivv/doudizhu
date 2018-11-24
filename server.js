@@ -10,47 +10,49 @@ app.get('/', function (req, res) {
 const deskList = [
 	{
 		deskId: 1,
+		state: 0,
 		positions: [
 			{
-				id: 0,
-				isEmpty: true,
+				posId: 0,
+				state: 0,
 				userName: ''
 			},
 			{
-				id: 1,
-				isEmpty: true,
+				posId: 1,
+				state: 0,
 				userName: ''
 			},
 			{
-				id: 2,
-				isEmpty: true,
+				posId: 2,
+				state: 0,
 				userName: ''
 			}
 		]
 	},
 	{
 		deskId: 2,
+		state: 0,
 		positions: [
 			{
-				id: 0,
-				isEmpty: true,
+				posId: 0,
+				state: 0,
 				userName: ''
 			},
 			{
-				id: 1,
-				isEmpty: true,
+				posId: 1,
+				state: 0,
 				userName: ''
 			},
 			{
-				id: 2,
-				isEmpty: true,
+				posId: 2,
+				state: 0,
 				userName: ''
 			}
 		]
 	}
 ];
 
-function time(){
+function time() {
 	return (new Date()).toLocaleTimeString();
 }
 
@@ -88,10 +90,20 @@ const proto = {
 		}
 		return null;
 	},
+	getOtherPosInfo(deskId, posId) {
+		let desk = this.getDesk(deskId);
+		if (desk) {
+			let positions = desk.positions;
+			return positions.filter(function (pos) {
+				return pos.posId !== posId;
+			})
+		}
+		return [];
+	},
 	getPosition(desk, posId) {
 		for (let i = 0, len = desk.positions.length; i < len; i++) {
 			let position = desk.positions[i];
-			if (position.id == posId) {
+			if (position.posId == posId) {
 				return position;
 			}
 		}
@@ -103,14 +115,14 @@ const proto = {
 			return false;
 		}
 		const position = this.getPosition(desk, posId);
-		return position && position.isEmpty;
+		return position && position.state === 0;
 	},
-	updatePosStatus(deskId, posId, isEmpty) {
+	updatePosStatus(deskId, posId, state) {
 		const desk = this.getDesk(deskId);
 		if (desk) {
 			const position = this.getPosition(desk, posId);
 			if (position) {
-				position.isEmpty = isEmpty;
+				position.state = state;
 			}
 		}
 	},
@@ -169,16 +181,18 @@ const proto = {
 				if (this.isEmptyPos(deskId, posId)) {
 					console.log('有客户端进入房间，桌号：%s，座位：%s，时间： %s', deskId, posId, time());
 					//更新座位状态为占用
-					this.updatePosStatus(deskId, posId, false);
+					this.updatePosStatus(deskId, posId, 1);
 					//绑定客户端桌号，座位号
 					this.updateClientState(socket, deskId, posId);
-					//通知该客户端坐下成功
-					socket.emit('SITDOWN_SUCCESS', data);
+					//获取除当前房间其它座位信息
+					let posInfos = this.getOtherPosInfo(deskId, posId);
+					//通知该客户端坐下成功 并发送当前房间的信息给该客户端
+					socket.emit('SITDOWN_SUCCESS', { ...data, posInfos });
 					//通知在大厅游览的所有客户端当前坐位已被占用
-					this.broadCastHouse('STATUS_CHANGE', { deskId, posId, isEmpty: false });
+					this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 1 });
 
-					//通知在房间里的其它客户端，有当前客户端加入
-					this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, isEmpty: false, prepare: false }, socket);
+					//通知在房间里的其它客户端，更新座位息
+					this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 1 }, socket);
 				} else {
 					//通知该客户端此座位被人占用
 					socket.emit('SITDOWN_ERROR', { msg: '该位置已有人' });
@@ -191,18 +205,41 @@ const proto = {
 				const client = this.getClient(socket);
 				const { deskId, posId } = client;
 				console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, time());
-				this.updatePosStatus(deskId, posId, true);
+				//更新座位状态
+				this.updatePosStatus(deskId, posId, 0);
+				//解绑座位号 桌号
 				this.updateClientState(socket);
+				//通知该客户端退出房间成功
 				socket.emit('UNSITDOWN_SUCCESS', this.desks);
-				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, isEmpty: true });
+
+				//通知在房间里的其它客户端，更新座位息
+				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 0 }, socket);
+
+				//通知大厅其它客户端更新该座位信息
+				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 0 });
 			});
+
+			socket.on('PREPARE', data => {
+				const client = this.getClient(socket);
+				const { deskId, posId } = client;
+				//更新座位为准备状态
+				this.updatePosStatus(deskId, posId, 2);
+				//通知该客户端准备成功
+				socket.emit('PREPARE_SUCCESS');
+				//通知房间里的其它客户端更新座位信息
+				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 2 }, socket);
+
+				//检查是否全部准备完毕
+
+			});
+
 
 			socket.on('disconnect', data => {
 				const client = this.getClient(socket);
 				const { deskId, posId } = client;
 				this.removeClient(socket);
-				this.updatePosStatus(deskId, posId, true);
-				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, isEmpty: true });
+				this.updatePosStatus(deskId, posId, 0);
+				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 0 });
 				console.log('有客户端断开了连接 %s', time());
 			})
 		});

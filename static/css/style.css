@@ -379,7 +379,7 @@
             transform: translateY(-50%);
         }
 
-        .btn-dispatch {
+        .btn-prepare {
             position: fixed;
             bottom: 10px;
             left: 50%;
@@ -491,3 +491,34 @@
             width: 100%;
             transform: translateY(-50%);
         }
+
+        .player-wrapper{
+            height: 100px;
+            width: 100px;
+            color: #fff;
+            position: absolute;
+        }
+        .player-photo{
+            width: 100%;
+            height: 80px;
+            background: url('../images/qq.png') no-repeat center;
+        }
+        .player-name{
+            font-size: 12px;
+        }
+        .player-status{
+            text-shadow: 2px 2px 5px #000;
+            color: rgb(25, 242, 0);
+        }
+        .text-center{
+            text-align: center
+        }
+        .player-right{
+            right: 0;
+        }
+       .player-wrapper.player-self{
+           position: fixed;
+           bottom: 50px;
+           left:50%;
+           transform: translateX(-50%);
+       }
