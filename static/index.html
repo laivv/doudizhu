@@ -32,6 +32,7 @@
                     <button class="btn">1分</button>
                     <button class="btn">2分</button>
                     <button class="btn">3分</button>
+                    <button class="btn">不叫</button>
                 </template>
                 <template v-if="roomState.state === 2">
                     <button class="btn" @click="playCards">出牌</button>
@@ -45,32 +46,15 @@
             <div class="card-groups" v-if="roomState.state">
 
                 <!-- 自己的牌列表 -->
-                <div class="card-group" :style="{width:posState.self.cards.length * 20 + 70 + 'px'}">
+                <div class="card-group card-group-self" :style="{width:posState.self.cards.length * 20 + 70 + 'px'}"
+                    v-if="posState.self.state > 1">
                     <div @dragStart="dragStart($event)" @click="selectCard(card)" v-for="(card,index) in posState.self.cards"
                         class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
                     </div>
                 </div>
-
-                <!-- 右家的牌列表 -->
-                <div class="card-group" :style="{width:posState.right.cards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.cards" class="card card-unknow"
-                        :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
-                    </div>
-                    <div class="icon-group icon-group-right text-right" v-if="roomState.ctxPos == 'right'">
-                        <span class="clock">15</span>
-                    </div>
-                    <div class="text-tips text-tips-right text-right">剩余：{{posState.left.cards.length}}张</div>
-                </div>
-
-                <!-- 底牌列表 -->
-                <div class="card-group" :style="{width:posState.top.cards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card card-unknow"
-                        :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
-                    </div>
-                </div>
-
                 <!-- 左家的牌列表 -->
-                <div class="card-group" :style="{width:posState.left.cards.length * 20 + 70 + 'px'}" v-if="posState.left.state">
+                <div class="card-group card-group-left" :style="{width:posState.left.cards.length * 20 + 70 + 'px'}"
+                    v-if="posState.left.state > 1">
                     <div @dragStart="dragStart($event)" v-for="(card,index) in posState.left.cards" class="card card-unknow"
                         :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
                     </div>
@@ -79,6 +63,25 @@
                     </div>
                     <div class="text-tips text-tips-left text-left">剩余：{{posState.left.cards.length}}张</div>
                 </div>
+                <!-- 右家的牌列表 -->
+                <div class="card-group card-group-right" :style="{width:posState.right.cards.length * 20 + 70 + 'px'}"
+                    v-if="posState.right.state > 1">
+                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.cards" class="card card-unknow"
+                        :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
+                    </div>
+                    <div class="icon-group icon-group-right text-right" v-if="roomState.ctxPos == 'right'">
+                        <span class="clock">15</span>
+                    </div>
+                    <div class="text-tips text-tips-right text-right">剩余：{{posState.left.cards.length}}张</div>
+                </div>
+                <!-- 底牌列表 -->
+                <div class="card-group card-group-top" :style="{width:posState.top.cards.length * 20 + 70 + 'px'}">
+                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card card-unknow"
+                        :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
+                    </div>
+                </div>
+
+
             </div>
 
             <!-- 出牌区域 -->
@@ -108,19 +111,19 @@
                     <div class="player-wrapper player-left" v-if="posState.left.state">
                         <div class="player-photo"></div>
                         <div class="player-name text-center">{{posState.left.name}}</div>
-                        <div class="text-center player-status" v-if="posState.left.state === 2">准备</div>
+                        <div class="text-center player-status" v-if="posState.left.state === 2 && roomState.state === 0">准备</div>
                     </div>
                     <div class="player-wrapper player-right" v-if="posState.right.state">
                         <div class="player-photo"></div>
                         <div class="player-name text-center">{{posState.right.name}}</div>
-                        <div class="text-center player-status" v-if="posState.right.state === 2">准备</div>
+                        <div class="text-center player-status" v-if="posState.right.state === 2 && roomState.state === 0">准备</div>
                     </div>
 
                 </div>
-                <div class="player-wrapper player-self">
+                <div class="player-wrapper player-self" v-if="roomState.state === 0">
                     <div class="player-photo"></div>
                     <div class="player-name text-center">{{posState.self.name}}</div>
-                    <div class="text-center player-status" v-if="posState.self.state === 2">准备</div>
+                    <div class="text-center player-status" v-if="posState.self.state === 2 && roomState.state === 0">准备</div>
                 </div>
             </div>
 
@@ -1097,7 +1100,7 @@
                         this.posId = data.posId;
                         this.deskId = data.deskId;
                         data.posInfos.forEach(function (pos) {
-                            this.updateRoomStatus(pos.posId, pos.state, pos.name);
+                            this.updatePosStatus(pos.posId, pos.state, pos.name);
                         }.bind(this))
 
                         layer.closeAll();
@@ -1110,10 +1113,8 @@
 
 
                     this.client.on('UNSITDOWN_SUCCESS', function (data) {
-                        this.where = 1;
-                        this.posId = '';
+                        this.resetRoomStatus();
                         this.desks = data;
-                        this.posState.self.state = 0;
                         layer.closeAll();
                     }.bind(this));
 
@@ -1126,11 +1127,25 @@
                     }.bind(this));
 
                     this.client.on('POS_STATUS_CHANGE', function (data) {
-                        this.updateRoomStatus(data.posId, data.state);
+                        this.updatePosStatus(data.posId, data.state);
+                    }.bind(this));
+                    
+                    this.client.on('ROOM_STATUS_CHANGE', function (data) {
+                        this.roomState.state = data.state;
+                    }.bind(this));
+                    
+                    this.client.on('FORCE_EXIT_EV', function (data) {
+                        layer.msg(data.msg);
                     }.bind(this));
 
                     this.client.on('PREPARE_SUCCESS', function (data) {
                         this.posState.self.state = 2;
+                        layer.closeAll();
+                    }.bind(this));
+
+                    this.client.on('GAME_START', function (data) {
+                        this.roomState.state = 1;
+                        this.initCards(data.cards);
                         layer.closeAll();
                     }.bind(this));
 
@@ -1189,7 +1204,7 @@
                     }
                     return mapping[this.posId][posId];
                 },
-                updateRoomStatus: function (posId, state, name) {
+                updatePosStatus: function (posId, state, name) {
                     var redirection = this.getDirectionByPosId(posId);
                     this.posState[redirection].state = state;
                     this.posState[redirection].name = name || '';
@@ -1205,6 +1220,13 @@
                 exitRoom: function () {
                     this.client.emit('UNSITDOWN');
                     layer.load({ type: 3 });
+                },
+                resetRoomStatus: function () {
+                    this.where = 1;
+                    this.posId = '';
+                    this.deskId = '';
+                    this.posState.self.state = 0;
+                    this.roomState.state = 0;
                 },
                 getSelectdCards: function () {
                     return this.posState.self.cards.filter(function (card) {
@@ -1255,19 +1277,13 @@
                 },
                 initCards: function (cards) {
                     cards.forEach(function (cardGroup, index) {
+                        cardGroup.cards.forEach(function (card) {
+                            card.selected = false;
+                        });
                         var posId = cardGroup.id;
                         var redirection = this.getDirectionByPosId(posId);
                         this.posState[redirection].cards = cardGroup.cards;
                     }.bind(this));
-                },
-                dispatchCard: function () {
-                    var cards = Game.dispatchCard();
-                    cards.forEach(function (group) {
-                        group.cards.forEach(function (card) {
-                            card.selected = false;
-                        })
-                    });
-                    this.initCards(cards);
                 }
             }
         })

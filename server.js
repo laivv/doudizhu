@@ -6,6 +6,7 @@ app.use(express.static(`${__dirname}/static`));
 app.get('/', function (req, res) {
 	res.sendFile(`${__dirname}/index.html`);
 });
+const Game = require('./game.js');
 
 const deskList = [
 	{
@@ -62,6 +63,7 @@ function GameServer(port) {
 	this.clients = [];
 	this.port = port;
 	this.desks = deskList;
+	this.gameDatas = {};
 }
 const proto = {
 	broadCastHouse(event, data, socket) {
@@ -99,6 +101,19 @@ const proto = {
 			})
 		}
 		return [];
+	},
+	updateOtherPosStatus(deskId, posId, state) {
+		let desk = this.getDesk(deskId);
+		if (desk) {
+			let positions = desk.positions;
+			positions.forEach(function (pos) {
+				if (pos.posId !== posId) {
+					pos.state = state;
+					this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId: pos.posId, state });
+				}
+			}.bind(this));
+		}
+
 	},
 	getPosition(desk, posId) {
 		for (let i = 0, len = desk.positions.length; i < len; i++) {
@@ -169,6 +184,28 @@ const proto = {
 		}
 		return false;
 	},
+	checkPrepareAll(deskId) {
+		const desk = this.getDesk(deskId);
+		if (desk) {
+			const positions = desk.positions;
+			for (let i = 0; i < 3; i++) {
+				if (positions[i].state !== 2) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	},
+	startGame(deskId) {
+		if (this.gameDatas[deskId] === undefined) {
+			this.gameDatas[deskId] = new Game();
+		}
+		const game = this.gameDatas[deskId];
+		game.init();
+		const cards = game.start().getCards();
+		this.broadCastRoom('GAME_START', deskId, { cards });
+	},
 	init() {
 		io.on('connection', socket => {
 			this.addClient(socket);
@@ -209,14 +246,25 @@ const proto = {
 				this.updatePosStatus(deskId, posId, 0);
 				//解绑座位号 桌号
 				this.updateClientState(socket);
-				//通知该客户端退出房间成功
-				socket.emit('UNSITDOWN_SUCCESS', this.desks);
+
 
 				//通知在房间里的其它客户端，更新座位息
 				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 0 }, socket);
 
 				//通知大厅其它客户端更新该座位信息
 				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 0 });
+
+				//如果在游戏中，则有玩家强行退出，重置此房间其它玩家的状态
+				const game = this.gameDatas[deskId];
+				if (game && game.getStatus()) {
+					this.updateOtherPosStatus(deskId, posId, 1);
+					this.broadCastRoom('ROOM_STATUS_CHANGE', deskId, { state: 0 });
+					this.broadCastRoom('FORCE_EXIT_EV',deskId,{msg:'有玩家逃跑，游戏结束'});
+					game.init();
+				}
+
+				//通知该客户端退出房间成功
+				socket.emit('UNSITDOWN_SUCCESS', this.desks);
 			});
 
 			socket.on('PREPARE', data => {
@@ -230,6 +278,10 @@ const proto = {
 				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 2 }, socket);
 
 				//检查是否全部准备完毕
+				const isPrepareAll = this.checkPrepareAll(deskId);
+				if (isPrepareAll) {
+					this.startGame(deskId);
+				}
 
 			});
 
