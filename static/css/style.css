@@ -410,6 +410,21 @@
         .btn-group>* {
             vertical-align: middle;
         }
+        .btn-call + .btn-call{
+            margin-left: 15px;
+        }
+        .score-tipe{
+            color: #0bfb0b;
+            font-size: 30px;
+            text-shadow: 3px 3px 3px #888;
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            text-align: center;
+            display: inline-block;
+            white-space: nowrap;
+        }
 
         .clock {
             background: url('/images/clock.png') no-repeat;

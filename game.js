@@ -780,8 +780,15 @@ var cardValidator = {
 
 function Game() {
     this.contextCards = [];
-    this.status = 0; //0未开始 1叫分 2游戏中 3结束
-    this.contextUserId = '';
+    this.contextScore = [1, 2, 3];
+    this.status = 0; //0未开始 1叫分 2游戏中 3结束 4需要重发 5错误
+    this.contextPosId = '';
+    this.userScore = {
+        0: -1,
+        1: -1,
+        2: -1
+    }
+
 }
 Object.assign(
     Game.prototype,
@@ -886,7 +893,11 @@ Object.assign(
             }
             return -1;
         },
-
+        mergeCardsByPosId(posId) {
+            const cards = this.getCardsByPosId(posId);
+            const topCards = this.getCardsByPosId(3);
+            cards.push(...topCards);
+        },
         getCardIndexByCards(card, cards) {
             for (var i = 0, len = cards.length; i < len; i++) {
                 var curr = cards[i];
@@ -901,20 +912,118 @@ Object.assign(
         },
         init() {
             this.contextCards = [];
-            this.status = 0;
-            this.contextUserId = '';
+            this.contextScore = [1, 2, 3];
+            this.status = 0; //0未开始 1叫分 2游戏中 3结束
+            this.contextPosId = '';
+            this.userScore = {
+                0: -1,
+                1: -1,
+                2: -1
+            }
             return this;
         },
         start() {
             this.status = 1;
-            this.contextUserId = getRandomNumForRange(2);
+            this.contextPosId = getRandomNumForRange(2);
             this.initCards();
             return this;
         },
-        getStatus(){
+        getStatus() {
             return this.status;
+        },
+        getContextPosId() {
+            return this.contextPosId;
+        },
+        getContextScore() {
+            return this.contextScore;
+        },
+        checkAllUserCalledScore() {
+            var ret = true;
+            for (var key in this.userScore) {
+                if (this.userScore.hasOwnProperty(key)) {
+                    if (this.userScore[key] < 0) {
+                        ret = false;
+                    }
+                    if(this.userScore[key] === 3){
+                        return true;
+                    }
+                }
+            }
+            return ret;
+        },
+        getMaxScoreInfo() {
+            let score = 0;
+            let posId = 0;
+            for (var key in this.userScore) {
+                if (this.userScore.hasOwnProperty(key)) {
+                    if (this.userScore[key] > score) {
+                        score = this.userScore[key];
+                        posId = Number(key);
+                    }
+                }
+            }
+            return {
+                score,
+                posId
+            }
+        },
+        getDiZhuPosId(){
+            return this.getMaxScoreInfo().posId;
+        },
+        getCalledScores(){
+            return this.userScore;
+        },
+        getTopCards(){
+            return this.getCardsByPosId(3);
+        },
+        next(posId, data) {
+
+            if (posId == this.contextPosId) {
+                if (this.status === 1) {
+                    this.userScore[posId] = data;
+                    const maxScoreInfo = this.getMaxScoreInfo();
+                    if (this.checkAllUserCalledScore()) {
+                        if (maxScoreInfo.score > 0) {
+                            this.status = 2;
+                            this.contextPosId = Number(maxScoreInfo.posId);
+                            this.mergeCardsByPosId(this.contextPosId);
+                        } else {
+                            //需要重新发牌
+                            this.status = 4;
+                        }
+
+                    } else {
+                        if (posId == 0) {
+                            this.contextPosId = 1;
+                        }
+                        if (posId == 1) {
+                            this.contextPosId = 2;
+                        }
+                        if (posId == 2) {
+                            this.contextPosId = 0;
+                        }
+
+                        if (maxScoreInfo.score < 1) {
+                            this.contextScore = [1, 2, 3];
+                        } else if (maxScoreInfo.score == 1) {
+                            this.contextScore = [2, 3];
+                        } else if (maxScoreInfo.score == 2) {
+                            this.contextScore = [3];
+                        } else {
+                            this.contextScore = [];
+                        }
+
+                    }
+
+                } else if (this.status === 2) {
+
+                }
+            } else {
+                this.status = 5;
+            }
+            return this;
         }
-       
+
     }
 
 )

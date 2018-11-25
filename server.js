@@ -109,7 +109,6 @@ const proto = {
 			positions.forEach(function (pos) {
 				if (pos.posId !== posId) {
 					pos.state = state;
-					this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId: pos.posId, state });
 				}
 			}.bind(this));
 		}
@@ -140,6 +139,14 @@ const proto = {
 				position.state = state;
 			}
 		}
+	},
+	updateRoomStatus(deskId, state) {
+		const desk = this.getDesk(deskId);
+		if (desk) {
+			desk.state = state;
+			return true;
+		}
+		return false;
 	},
 	removeClient(socket) {
 		for (let i = 0, len = this.clients.length; i < len; i++) {
@@ -205,6 +212,7 @@ const proto = {
 		game.init();
 		const cards = game.start().getCards();
 		this.broadCastRoom('GAME_START', deskId, { cards });
+		this.broadCastRoom('CTX_USER_CHANGE', deskId, { ctxPos: game.getContextPosId(), ctxScore: game.getContextScore(), timeout: 15 });
 	},
 	init() {
 		io.on('connection', socket => {
@@ -234,7 +242,7 @@ const proto = {
 					//通知该客户端此座位被人占用
 					socket.emit('SITDOWN_ERROR', { msg: '该位置已有人' });
 					//由于当前位置被占用可能是由于该客户端数据不同步造成，所以再次向该客户端推送一次所有桌数据
-					socket.emit('DESK_LIST', this.desks);
+					socket.emit('REFRESH_LIST', this.desks);
 				}
 			});
 
@@ -244,26 +252,34 @@ const proto = {
 				console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, time());
 				//更新座位状态
 				this.updatePosStatus(deskId, posId, 0);
+				//重置房间状态
+				this.updateRoomStatus(deskId, posId, 0);
 				//解绑座位号 桌号
 				this.updateClientState(socket);
-
-
 				//通知在房间里的其它客户端，更新座位息
 				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 0 }, socket);
-
 				//通知大厅其它客户端更新该座位信息
 				this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 0 });
 
-				//如果在游戏中，则有玩家强行退出，重置此房间其它玩家的状态
+				//如果在游戏中，则有玩家强行退出，重置此房间其它玩家的状态为未准备
+				//获取此桌游戏数据
 				const game = this.gameDatas[deskId];
+				//判断是否在进行游戏
 				if (game && game.getStatus()) {
+					//更新其它两位玩家的座位状态为未准备
 					this.updateOtherPosStatus(deskId, posId, 1);
+					//获取其它两位玩家的座位信息
+					const otherPosInfo = this.getOtherPosInfo(deskId, posId);
+					//通知其它两位玩家重置自己的状态为未准备
+					this.broadCastRoom("POS_STATUS_RESET", deskId, { pos: otherPosInfo, state: 1 });
+					//通知其它两位玩家重置房间状态
 					this.broadCastRoom('ROOM_STATUS_CHANGE', deskId, { state: 0 });
-					this.broadCastRoom('FORCE_EXIT_EV',deskId,{msg:'有玩家逃跑，游戏结束'});
+					//通知其它两位玩家当前玩家逃跑
+					this.broadCastRoom('FORCE_EXIT_EV', deskId, { msg: '有玩家逃跑，游戏结束' });
 					game.init();
 				}
 
-				//通知该客户端退出房间成功
+				//通知当前玩家退出房间成功
 				socket.emit('UNSITDOWN_SUCCESS', this.desks);
 			});
 
@@ -277,12 +293,34 @@ const proto = {
 				//通知房间里的其它客户端更新座位信息
 				this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 2 }, socket);
 
+				//更新房间状态
+				this.updateRoomStatus(deskId, 1);
+
 				//检查是否全部准备完毕
 				const isPrepareAll = this.checkPrepareAll(deskId);
 				if (isPrepareAll) {
 					this.startGame(deskId);
 				}
 
+			});
+
+			socket.on('CALL_SCORE', data => {
+				const { score } = data;
+				const client = this.getClient(socket);
+				const { deskId, posId } = client;
+				const game = this.gameDatas[deskId];
+				const status = game.next(posId, score).getStatus();
+				if (status == 1) {
+					const ctxPos = game.getContextPosId();
+					const ctxScore = game.getContextScore();
+					const calledScores = game.getCalledScores();
+					this.broadCastRoom('CTX_USER_CHANGE', deskId, { ctxPos, ctxScore, calledScores, timeout: 15 });
+				}
+				if (status == 2) {
+					const topCards = game.getTopCards();
+					const dizhuPosId = game.getDiZhuPosId();
+					this.broadCastRoom('SHOW_TOP_CARD', deskId, { topCards, dizhuPosId })
+				}
 			});
 
 
