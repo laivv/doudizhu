@@ -60,7 +60,7 @@
                         <span class="clock">{{roomState.timeout}}</span>
                     </div>
                     <div class="text-tips text-tips-left text-left">剩余：{{posState.left.cards.length}}张</div>
-                    
+
                 </div>
                 <!-- 右家的牌列表 -->
                 <div class="card-group card-group-right" :style="{width:posState.right.cards.length * 20 + 70 + 'px'}"
@@ -71,14 +71,12 @@
                     <div class="icon-group icon-group-right text-right" v-if="roomState.ctxPos == 'right'">
                         <span class="clock">{{roomState.timeout}}</span>
                     </div>
-                    <div class="text-tips text-tips-right text-right">剩余：{{posState.left.cards.length}}张</div>
+                    <div class="text-tips text-tips-right text-right">剩余：{{posState.right.cards.length}}张</div>
                 </div>
                 <!-- 底牌列表 -->
                 <div class="card-group card-group-top" :style="{width:posState.top.cards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card"
-                        :style="{left:index * 20 + 'px'}"
-                        :class="roomState.state ==2 ? 'card-' + card.value + '-' + card.type : ' card-unknow' "
-                        >
+                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card" :style="{left:index * 20 + 'px'}"
+                        :class="roomState.state ==2 ? 'card-' + card.value + '-' + card.type : ' card-unknow' ">
                     </div>
                 </div>
 
@@ -92,7 +90,8 @@
                     <div @dragStart="dragStart($event)" v-for="(card,index) in posState.left.ctxCards" class="card"
                         :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
                     </div>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.left.callScore > -1">{{posState.left.callScore > 0 ? posState.left.callScore + '分' : '不叫' }}</span>
+                    <span class="score-tipe" v-if="roomState.state == 1 && posState.left.callScore > -1">{{posState.left.callScore
+                        > 0 ? posState.left.callScore + '分' : '不叫' }}</span>
 
                 </div>
                 <!-- 自己的出牌区域 -->
@@ -100,7 +99,8 @@
                     <div @dragStart="dragStart($event)" v-for="(card,index) in posState.self.ctxCards" class="card"
                         :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
                     </div>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">{{posState.self.callScore > 0 ? posState.self.callScore + '分' : '不叫' }}</span>
+                    <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">{{posState.self.callScore
+                        > 0 ? posState.self.callScore + '分' : '不叫' }}</span>
 
                 </div>
                 <!-- 右家的出牌区域 -->
@@ -108,7 +108,8 @@
                     <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.ctxCards" class="card"
                         :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
                     </div>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.right.callScore > -1">{{posState.right.callScore > 0 ? posState.right.callScore + '分' : '不叫' }}</span>
+                    <span class="score-tipe" v-if="roomState.state == 1 && posState.right.callScore > -1">{{posState.right.callScore
+                        > 0 ? posState.right.callScore + '分' : '不叫' }}</span>
 
                 </div>
             </div>
@@ -1011,6 +1012,7 @@
                             len: 0,
                             key: '',
                             type: '',
+                            ctxPos: ''
                         },
                         ctxScore: [],
                         timeout: 15,
@@ -1054,6 +1056,10 @@
                     };
 
                     this.client = createClient(location.host);
+
+                    this.client.on('MESSAGE', function (data) {
+                        layer.msg(data.msg);
+                    }.bind(this));
 
                     this.client.on('LOGIN_SUCCESS', function (data) {
                         this.desks = data;
@@ -1123,10 +1129,9 @@
                     this.client.on('GAME_START', function (data) {
                         this.roomState.state = 1;
                         this.initCards(data.cards);
-                        layer.closeAll();
                     }.bind(this));
 
-                    
+
                     //叫分事件
                     this.client.on('CTX_USER_CHANGE', function (data) {
                         this.updateCtxInfo(data);
@@ -1136,23 +1141,39 @@
                     this.client.on('SHOW_TOP_CARD', function (data) {
                         this.roomState.state = 2;
                         var direct = this.getDirectionByPosId(data.dizhuPosId);
-                        if(direct == 'self')
-                        {
-                            data.topCards.forEach(function(card){
+                        if (direct == 'self') {
+                            data.topCards.forEach(function (card) {
                                 card.selected = true;
                             })
-                            this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards).sort(function(a,b){
+                            this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards).sort(function (a, b) {
                                 return a.value - b.value;
                             });
-                        }else{
+                        } else {
                             this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards);
                         }
                         this.posState.top.cards = data.topCards;
                         this.roomState.ctxPos = direct;
+                        this.roomState.timeout = data.timeout;
                         this.startTimer();
                     }.bind(this));
 
 
+
+                    this.client.on('CTX_PLAY_CHANGE', function (data) {
+                        var direct = this.getDirectionByPosId(data.ctxData.posId);
+                        this.posState[direct].ctxCards = data.ctxData.cards;
+                        if (data.ctxData.len) {
+                            this.roomState.ctxCard.len = data.ctxData.len;
+                            this.roomState.ctxCard.key = data.ctxData.key;
+                            this.roomState.ctxCard.type = data.ctxData.type;
+                            this.roomState.ctxCard.ctxPos = direct;
+                        }
+                        this.roomState.ctxPos = this.getDirectionByPosId(data.posId);
+                        this.roomState.timeout = data.timeout;
+                        this.startTimer();
+
+
+                    }.bind(this));
 
                 }.bind(this));
             },
@@ -1190,9 +1211,9 @@
                     this.roomState.ctxPos = ctx.ctxPos;
                     this.roomState.ctxScore = ctx.ctxScore;
                     this.roomState.timeout = ctx.timeout;
-                    if(ctx.calledScores){
-                        for (var key in ctx.calledScores){
-                            if(ctx.calledScores.hasOwnProperty(key)){
+                    if (ctx.calledScores) {
+                        for (var key in ctx.calledScores) {
+                            if (ctx.calledScores.hasOwnProperty(key)) {
                                 var posId = Number(key);
                                 var direct = this.getDirectionByPosId(posId);
                                 this.posState[direct].callScore = ctx.calledScores[key];
@@ -1308,14 +1329,45 @@
 
 
                 playCards: function (cards) {
+                    if (this.roomState.ctxPos !== 'self') {
+                        return layer.msg('未到出牌时间');
+                    }
+
                     var cards = this.getSelectdCards();
                     var ret = validate(cards);
-                    if (ret.status) {
-                        this.posState.self.ctxCards = cards;
-                        this.removeCards(cards);
-                    } else {
-                        layer.msg('你的牌不符合规则');
+                    if (!ret.status) {
+                        return layer.msg('你的牌不符合规则');
                     }
+
+                    //上一次有效出牌的人若不是自己，则需要出更大的牌
+                    if (this.roomState.ctxCard.ctxPos !== 'self') {
+                        if (this.roomState.ctxCard.type === 'KING') {
+                            return layer.msg('你的牌不符合规则');
+                        }
+                        else if (this.roomState.ctxCard.type === 'AAAA') {
+                            if (ret.type !== 'KING') {
+                                if (ret.type !== 'AAAA') {
+                                    return layer.msg('你的牌不符合规则');
+                                }
+                                if (ret.type === 'AAAA' && this.roomState.ctxCard.key > ret.key) {
+                                    return layer.msg('你的牌不符合规则');
+                                }
+                            }
+
+                        }else{
+                            if(ret.type !== 'KING' && ret.type !== 'AAAA'){
+                                if(ret.len !== this.roomState.ctxCard.len 
+                                ||ret.key < this.roomState.ctxCard.key
+                                ||ret.type !== this.roomState.ctxCard.type){
+                                    return layer.msg('你的牌不符合规则');
+                                }
+                            }
+                        }
+
+
+                    }
+                    this.posState.self.ctxCards = cards;
+                    this.removeCards(cards);
                 },
                 //不出
                 passCards: function () {

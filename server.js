@@ -319,7 +319,18 @@ const proto = {
 				if (status == 2) {
 					const topCards = game.getTopCards();
 					const dizhuPosId = game.getDiZhuPosId();
-					this.broadCastRoom('SHOW_TOP_CARD', deskId, { topCards, dizhuPosId })
+					this.broadCastRoom('SHOW_TOP_CARD', deskId, { topCards, dizhuPosId, timeout: 15 });
+					this.broadCastRoom('CTX_PLAY_CHANGE', deskId, { ctxData: {
+						len: 0,
+						key: '',
+						type: '',
+						cards:[],
+						posId:dizhuPosId,
+					}, posId: dizhuPosId, timeout: 15 })
+				}
+				if (status == 4) {
+					this.broadCastRoom('MESSAGE', deskId, { msg: '没有玩家叫分，重新发牌' });
+					this.startGame(deskId);
 				}
 			});
 
