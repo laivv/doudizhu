@@ -294,9 +294,9 @@ Object.assign(
 
             if (winnerId === diZhuId) {
                 ret.winner.push(diZhuId);
-                ret.loser.push(...posIds.splice(posIds.indexOf(diZhuId)))
+                ret.loser.push(...posIds.splice(posIds.indexOf(diZhuId), 1))
             } else if (winnerId !== diZhuId) {
-                ret.winner.push(...posIds.splice(posIds.indexOf(diZhuId)))
+                ret.winner.push(...posIds.splice(posIds.indexOf(diZhuId), 1))
                 ret.loser.push(diZhuId);
             }
             return ret;

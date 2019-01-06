@@ -10,7 +10,7 @@
 </head>
 
 <body>
-    <div id="app">
+    <div id="app" v-cloak>
         <!-- 大厅 -->
         <div class="full-screen house" v-if="where === 1">
             <div v-for="desk in desks" class="desk">
@@ -34,7 +34,7 @@
                 </template>
                 <template v-if="roomState.state === 2">
                     <button class="btn" @click="playCards">出牌</button>
-                    <button class="btn" @click="passCards">不出</button>
+                    <button class="btn" @click="passCards" v-if="roomState.ctxCard.ctxPos !== roomState.ctxPos">不出</button>
                 </template>
 
             </div>
@@ -87,27 +87,44 @@
             <div class="screen-center">
                 <!-- 左家的出牌区域 -->
                 <div class="card-ctx card-ctx-left" :style="{width:posState.left.ctxCards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.left.ctxCards" class="card"
-                        :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                    </div>
+                    <template v-if="roomState.state == 2">
+                        <div v-if="posState.left.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.left.ctxCards"
+                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+                        </div>
+                        <span v-else class="score-tipe">
+                            不出
+                        </span>
+                    </template>
                     <span class="score-tipe" v-if="roomState.state == 1 && posState.left.callScore > -1">{{posState.left.callScore
                         > 0 ? posState.left.callScore + '分' : '不叫' }}</span>
 
                 </div>
                 <!-- 自己的出牌区域 -->
                 <div class="card-ctx card-ctx-self" :style="{width:posState.self.ctxCards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.self.ctxCards" class="card"
-                        :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                    </div>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">{{posState.self.callScore
-                        > 0 ? posState.self.callScore + '分' : '不叫' }}</span>
+                    <template v-if="roomState.state == 2">
+                        <div v-if="posState.self.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.self.ctxCards"
+                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+                        </div>
+                        <span v-else class="score-tipe">
+                            不出
+                        </span>
+                    </template>
+                    <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">
+                        {{posState.self.callScore
+                        > 0 ? posState.self.callScore + '分' : '不叫' }}
+                    </span>
 
                 </div>
                 <!-- 右家的出牌区域 -->
                 <div class="card-ctx card-ctx-right" :style="{width:posState.right.ctxCards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.ctxCards" class="card"
-                        :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                    </div>
+                    <template v-if="roomState.state == 2">
+                        <div v-if="posState.right.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.right.ctxCards"
+                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+                        </div>
+                        <span v-else class="score-tipe">
+                            不出
+                        </span>
+                    </template>
                     <span class="score-tipe" v-if="roomState.state == 1 && posState.right.callScore > -1">{{posState.right.callScore
                         > 0 ? posState.right.callScore + '分' : '不叫' }}</span>
 
@@ -316,7 +333,7 @@
                         this.posState.top.cards = data.topCards;
                         this.roomState.ctxPos = direct;
                         this.roomState.timeout = data.timeout;
-                        this.startTimer();
+                        this.startTimer(this.autoPlayCards.bind(this));
                     }.bind(this));
 
 
@@ -332,20 +349,20 @@
                         }
                         this.roomState.ctxPos = this.getDirectionByPosId(data.posId);
                         this.roomState.timeout = data.timeout;
-                        this.startTimer();
+                        this.startTimer(this.autoPlayCards.bind(this));
 
 
                     }.bind(this));
 
-                    this.client.on('PLAY_CARD_ERROR',function(data){
+                    this.client.on('PLAY_CARD_ERROR', function (data) {
                         layer.msg('你的牌不符合规则');
                     }.bind(this))
-                    this.client.on('PLAY_CARD_SUCCESS',function(cards){
+                    this.client.on('PLAY_CARD_SUCCESS', function (cards) {
                         this.removeCards(cards);
                         this.posState.self.ctxCards = cards;
                     }.bind(this))
 
-                    this.client.on('GAME_OVER',function(data){
+                    this.client.on('GAME_OVER', function (data) {
                         var msg = data.winner.indexOf(this.posId) > - 1 ? '恭喜你，你赢了' : '很遗憾，你输了';
                         layer.msg(msg);
                     }.bind(this))
@@ -514,38 +531,16 @@
                         return layer.msg('你的牌不符合规则');
                     }
 
-                    //上一次有效出牌的人若不是自己，则需要出更大的牌
-                    // if (this.roomState.ctxCard.ctxPos !== 'self') {
-                    //     if (this.roomState.ctxCard.type === 'KING') {
-                    //         return layer.msg('你的牌不符合规则');
-                    //     }
-                    //     else if (this.roomState.ctxCard.type === 'AAAA') {
-                    //         if (ret.type !== 'KING') {
-                    //             if (ret.type !== 'AAAA') {
-                    //                 return layer.msg('你的牌不符合规则');
-                    //             }
-                    //             if (ret.type === 'AAAA' && this.roomState.ctxCard.key > ret.key) {
-                    //                 return layer.msg('你的牌不符合规则');
-                    //             }
-                    //         }
-
-                    //     }else{
-                    //         if(ret.type !== 'KING' && ret.type !== 'AAAA'){
-                    //             if(ret.len !== this.roomState.ctxCard.len 
-                    //             ||ret.key < this.roomState.ctxCard.key
-                    //             ||ret.type !== this.roomState.ctxCard.type){
-                    //                 return layer.msg('你的牌不符合规则');
-                    //             }
-                    //         }
-                    //     }
-
-
-                    // }
-                    this.client.emit('PLAY_CARD',cards);
+                    this.client.emit('PLAY_CARD', cards);
                 },
                 //不出
                 passCards: function () {
-
+                    this.client.emit('PLAY_CARD', [])
+                },
+                autoPlayCards: function () {
+                    if (this.roomState.ctxPos === 'self') {
+                        this.client.emit('PLAY_CARD', [this.posState.self.cards[0]]);
+                    }
                 },
                 prepare: function () {
                     layer.load({ type: 3 });

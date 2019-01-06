@@ -1,7 +1,9 @@
  body {
             font-family: "microsoft yahei";
         }
-
+[v-cloak]{
+    display: none;
+}
         .card {
             height: 120px;
             width: 90px;

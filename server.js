@@ -327,7 +327,7 @@ const proto = {
               type: '',
               cards: [],
               posId: dizhuPosId,
-            }, posId: dizhuPosId, timeout: 15,
+            }, posId: dizhuPosId, timeout: 1,
             pass:false,
           })
         }
@@ -353,7 +353,7 @@ const proto = {
               type:ret.type,
               cards:data,
               posId
-            },posId:game.getContextPosId(),timeout:15,
+            },posId:game.getContextPosId(),timeout:1,
             pass: !data.length 
           })
           socket.emit('PLAY_CARD_SUCCESS',data)
@@ -369,8 +369,43 @@ const proto = {
         const client = this.getClient(socket);
         const { deskId, posId } = client;
         this.removeClient(socket);
+
+
+
+        //更新座位状态
         this.updatePosStatus(deskId, posId, 0);
+        //重置房间状态
+        this.updateRoomStatus(deskId, posId, 0);
+        //解绑座位号 桌号
+        this.updateClientState(socket);
+        //通知在房间里的其它客户端，更新座位息
+        this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 0 }, socket);
+        //通知大厅其它客户端更新该座位信息
         this.broadCastHouse('STATUS_CHANGE', { deskId, posId, state: 0 });
+
+        //如果在游戏中，则有玩家强行退出，重置此房间其它玩家的状态为未准备
+        //获取此桌游戏数据
+        const game = this.gameDatas[deskId];
+        //判断是否在进行游戏
+        if (game && game.getStatus()) {
+          //更新其它两位玩家的座位状态为未准备
+          this.updateOtherPosStatus(deskId, posId, 1);
+          //获取其它两位玩家的座位信息
+          const otherPosInfo = this.getOtherPosInfo(deskId, posId);
+          //通知其它两位玩家重置自己的状态为未准备
+          this.broadCastRoom("POS_STATUS_RESET", deskId, { pos: otherPosInfo, state: 1 });
+          //通知其它两位玩家重置房间状态
+          this.broadCastRoom('ROOM_STATUS_CHANGE', deskId, { state: 0 });
+          //通知其它两位玩家当前玩家逃跑
+          this.broadCastRoom('FORCE_EXIT_EV', deskId, { msg: '有玩家逃跑，游戏结束' });
+          game.init();
+        }
+
+      
+
+
+
+        console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, time());
         console.log('有客户端断开了连接 %s', time());
       })
     });
