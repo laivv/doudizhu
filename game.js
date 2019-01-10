@@ -81,7 +81,7 @@ Object.assign(
                     status: false
                 }
             }
-            if (ret.status && this.lastCardInfo.posId === posId) {
+            if (this.lastCardInfo.posId === posId) {
                 return {
                     status: true,
                     key: ret.types[0].key,
@@ -126,7 +126,7 @@ Object.assign(
                             len: ret.len
                         }
                     } else {
-                        if (type === this.lastCardInfo.type && ret.len === this.lastCardInfo.len) {
+                        if (type === this.lastCardInfo.type && ret.len === this.lastCardInfo.len && key > this.lastCardInfo.key) {
                             return {
                                 status: true,
                                 key,
@@ -291,12 +291,12 @@ Object.assign(
                     break;
                 }
             }
-
+            posIds.splice(posIds.indexOf(diZhuId), 1)
             if (winnerId === diZhuId) {
                 ret.winner.push(diZhuId);
-                ret.loser.push(...posIds.splice(posIds.indexOf(diZhuId), 1))
+                ret.loser = posIds;
             } else if (winnerId !== diZhuId) {
-                ret.winner.push(...posIds.splice(posIds.indexOf(diZhuId), 1))
+                ret.winner = posIds;
                 ret.loser.push(diZhuId);
             }
             return ret;

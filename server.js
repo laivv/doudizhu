@@ -327,7 +327,7 @@ const proto = {
               type: '',
               cards: [],
               posId: dizhuPosId,
-            }, posId: dizhuPosId, timeout: 1,
+            }, posId: dizhuPosId, timeout: 15,
             pass:false,
           })
         }
@@ -353,7 +353,7 @@ const proto = {
               type:ret.type,
               cards:data,
               posId
-            },posId:game.getContextPosId(),timeout:1,
+            },posId:game.getContextPosId(),timeout:15,
             pass: !data.length 
           })
           socket.emit('PLAY_CARD_SUCCESS',data)
