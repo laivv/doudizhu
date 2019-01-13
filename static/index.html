@@ -2,570 +2,675 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>斗地主</title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>斗地主</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-    <div id="app" v-cloak>
-        <!-- 大厅 -->
-        <div class="full-screen house" v-if="where === 1">
-            <div v-for="desk in desks" class="desk">
-                <div v-for="position in desk.positions" class="position" :class="{has:position.state,position0:position.posId === 0,position1:position.posId === 1,position2:position.posId === 2}">
-                    <span class="position-image" :class="{has:position.state}" @click="sitDown(desk.deskId,position)">
-                    </span>
-                    <span class="position-text" v-if="position.state">{{position.userName}}</span>
-                </div>
-                <div class="position-center">{{desk.deskId}}号桌</div>
-            </div>
+  <div id="app" v-cloak>
+
+    <div class="full-screen login-wrapper" v-if="where === 0">
+      <div class="login-panel  layout-center">
+        <div class="row title">
+          欢迎来到Remember世界
         </div>
-        <!-- 房间 -->
-        <div class="full-screen room" v-if="where === 2">
-            <button class="btn-exit-room" @click="exitRoom">返回大厅</button>
-
-            <div class="btn-group" v-if="roomState.state > 0 && roomState.ctxPos === 'self'">
-                <span class="clock">{{roomState.timeout}}</span>
-                <template v-if="roomState.state === 1">
-                    <button class="btn btn-call" v-for="score in roomState.ctxScore" @click="callScore(score)">{{score}}分</button>
-                    <button class="btn btn-call" @click="callScore(0)">不叫</button>
-                </template>
-                <template v-if="roomState.state === 2">
-                    <button class="btn" @click="playCards">出牌</button>
-                    <button class="btn" @click="passCards" v-if="roomState.ctxCard.ctxPos !== roomState.ctxPos">不出</button>
-                </template>
-
-            </div>
-
-            <button v-if="posState.self.state < 2" @click="prepare" class="btn-prepare">准备</button>
-
-            <div class="card-groups" v-if="roomState.state">
-
-                <!-- 自己的牌列表 -->
-                <div class="card-group card-group-self" :style="{width:posState.self.cards.length * 20 + 70 + 'px'}"
-                    v-if="posState.self.state > 1">
-                    <div @dragStart="dragStart($event)" @click="selectCard(card)" v-for="(card,index) in posState.self.cards"
-                        class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
-                    </div>
-                </div>
-                <!-- 左家的牌列表 -->
-                <div class="card-group card-group-left" :style="{width:posState.left.cards.length * 20 + 70 + 'px'}"
-                    v-if="posState.left.state > 1">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.left.cards" class="card card-unknow"
-                        :style="{left:index * 20 + 'px'}">
-                    </div>
-                    <div class="icon-group icon-group-left text-left" v-if="roomState.ctxPos == 'left'">
-                        <span class="clock">{{roomState.timeout}}</span>
-                    </div>
-                    <div class="text-tips text-tips-left text-left">剩余：{{posState.left.cards.length}}张</div>
-
-                </div>
-                <!-- 右家的牌列表 -->
-                <div class="card-group card-group-right" :style="{width:posState.right.cards.length * 20 + 70 + 'px'}"
-                    v-if="posState.right.state > 1">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.cards" class="card card-unknow"
-                        :style="{left:index * 20 + 'px'}">
-                    </div>
-                    <div class="icon-group icon-group-right text-right" v-if="roomState.ctxPos == 'right'">
-                        <span class="clock">{{roomState.timeout}}</span>
-                    </div>
-                    <div class="text-tips text-tips-right text-right">剩余：{{posState.right.cards.length}}张</div>
-                </div>
-                <!-- 底牌列表 -->
-                <div class="card-group card-group-top" :style="{width:posState.top.cards.length * 20 + 70 + 'px'}">
-                    <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card" :style="{left:index * 20 + 'px'}"
-                        :class="roomState.state ==2 ? 'card-' + card.value + '-' + card.type : ' card-unknow' ">
-                    </div>
-                </div>
+        <input type="text" class="input" placeholder="给自己取一个名字" v-model.trim="posState.self.name"><button @click="login">确定</button>
+      </div>
+    </div>
 
 
-            </div>
+    <!-- 大厅 -->
+    <div class="full-screen house" v-if="where === 1">
+      <div v-for="desk in desks" class="desk">
+        <div v-for="position in desk.positions" class="position" :class="{has:position.state,position0:position.posId === 0,position1:position.posId === 1,position2:position.posId === 2}">
+          <span class="position-image" :class="{has:position.state}" @click="sitDown(desk.deskId,position)">
+          </span>
+          <span class="position-text" v-if="position.state">{{position.userName}}</span>
+        </div>
+        <div class="position-center">{{desk.deskId}}</div>
+      </div>
+    </div>
+    <!-- 房间 -->
+    <div class="full-screen room" v-if="where === 2">
+      <button class="btn-exit-room" @click="exitRoom">返回大厅</button>
 
-            <!-- 出牌区域 -->
-            <div class="screen-center">
-                <!-- 左家的出牌区域 -->
-                <div class="card-ctx card-ctx-left" :style="{width:posState.left.ctxCards.length * 20 + 70 + 'px'}">
-                    <template v-if="roomState.state == 2">
-                        <div v-if="posState.left.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.left.ctxCards"
-                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                        </div>
-                        <span v-else class="score-tipe">
-                            不出
-                        </span>
-                    </template>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.left.callScore > -1">{{posState.left.callScore
-                        > 0 ? posState.left.callScore + '分' : '不叫' }}</span>
+      <div class="btn-group" v-if="roomState.state > 0 && roomState.state < 3 && roomState.ctxPos === 'self'">
+        <span class="clock">{{roomState.timeout}}</span>
+        <template v-if="roomState.state === 1">
+          <button class="btn btn-call" v-for="score in roomState.ctxScore" @click="callScore(score)">{{score}}分</button>
+          <button class="btn btn-call" @click="callScore(0)">不叫</button>
+        </template>
+        <template v-if="roomState.state === 2">
+          <button class="btn" @click="playCards">出牌</button>
+          <button class="btn" @click="passCards" v-if="roomState.ctxCard.ctxPos !== roomState.ctxPos">不出</button>
+        </template>
 
-                </div>
-                <!-- 自己的出牌区域 -->
-                <div class="card-ctx card-ctx-self" :style="{width:posState.self.ctxCards.length * 20 + 70 + 'px'}">
-                    <template v-if="roomState.state == 2">
-                        <div v-if="posState.self.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.self.ctxCards"
-                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                        </div>
-                        <span v-else class="score-tipe">
-                            不出
-                        </span>
-                    </template>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">
-                        {{posState.self.callScore
-                        > 0 ? posState.self.callScore + '分' : '不叫' }}
-                    </span>
+      </div>
 
-                </div>
-                <!-- 右家的出牌区域 -->
-                <div class="card-ctx card-ctx-right" :style="{width:posState.right.ctxCards.length * 20 + 70 + 'px'}">
-                    <template v-if="roomState.state == 2">
-                        <div v-if="posState.right.ctxCards.length" @dragStart="dragStart($event)" v-for="(card,index) in posState.right.ctxCards"
-                            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
-                        </div>
-                        <span v-else class="score-tipe">
-                            不出
-                        </span>
-                    </template>
-                    <span class="score-tipe" v-if="roomState.state == 1 && posState.right.callScore > -1">{{posState.right.callScore
-                        > 0 ? posState.right.callScore + '分' : '不叫' }}</span>
+      <button v-if="posState.self.state < 2" @click="prepare" class="btn-prepare">准备</button>
 
-                </div>
-            </div>
-            <!-- 玩家头像 -->
-            <div class="players">
-                <div class="screen-center">
-                    <div class="player-wrapper player-left" v-if="posState.left.state">
-                        <div class="player-photo"></div>
-                        <div class="player-name text-center">{{posState.left.name}}</div>
-                        <div class="text-center player-status" v-if="posState.left.state === 2 && roomState.state === 0">准备</div>
-                    </div>
-                    <div class="player-wrapper player-right" v-if="posState.right.state">
-                        <div class="player-photo"></div>
-                        <div class="player-name text-center">{{posState.right.name}}</div>
-                        <div class="text-center player-status" v-if="posState.right.state === 2 && roomState.state === 0">准备</div>
-                    </div>
+      <div class="card-groups" v-if="roomState.state">
 
-                </div>
-                <div class="player-wrapper player-self" v-if="roomState.state === 0">
-                    <div class="player-photo"></div>
-                    <div class="player-name text-center">{{posState.self.name}}</div>
-                    <div class="text-center player-status" v-if="posState.self.state === 2 && roomState.state === 0">准备</div>
-                </div>
-            </div>
+        <!-- 自己的牌列表 -->
+        <div class="card-group card-group-self" :style="{width:posState.self.cards.length * 20 + 70 + 'px'}" v-if="!(roomState.state === 3 && posState.self.state === 2)">
+          <div @dragStart="dragStart($event)" @click="selectCard(card)" v-for="(card,index) in posState.self.cards"
+            class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px',top:card.selected ? '-20px' : 0}">
+          </div>
+          <!-- 自己的头像 -->
+          <div class="player-wrapper player-self-ctx">
+            <div class="player-photo" :class="{'player-photo-king':posState.self.isDizhu}"></div>
+            <div class="player-name text-center">{{posState.self.name}}</div>
+            <div class="text-center player-status" v-if="posState.self.state === 2 && (roomState.state === 0 || roomState.state === 3)">准备</div>
+            <!-- <div class="text-center" v-if="posState.self.isDizhu">
+             <img src="images/dizhu.png" alt="">
+           </div> -->
+          </div>
+        </div>
+        <!-- 左家的牌列表 -->
+        <div class="card-group card-group-left" :style="{width:posState.left.cards.length * 20 + 70 + 'px'}">
+          <div @dragStart=" dragStart($event)" v-for="(card,index) in posState.left.cards" class="card" :class="roomState.state === 3 ? 'card-' + card.value + '-' + card.type : 'card-unknow'"
+            :style="{left:index * 20 + 'px'}">
+          </div>
+          <div class="icon-group icon-group-left text-left" v-if="roomState.ctxPos == 'left' && roomState.state < 3">
+            <span class="clock">{{roomState.timeout}}</span>
+          </div>
+          <div class="text-tips text-tips-left text-left" v-if="roomState.state < 3">剩余：{{posState.left.cards.length}}张</div>
 
         </div>
+        <!-- 右家的牌列表 -->
+        <div class="card-group card-group-right" :style="{width:posState.right.cards.length * 20 + 70 + 'px'}">
+          <div @dragStart="dragStart($event)" v-for="(card,index) in posState.right.cards" class="card" :class="roomState.state === 3 ? 'card-' + card.value + '-' + card.type : 'card-unknow'"
+            :style="{left:index * 20 + 'px'}">
+          </div>
+          <div class="icon-group icon-group-right text-right" v-if="roomState.ctxPos == 'right' && roomState.state < 3">
+            <span class="clock">{{roomState.timeout}}</span>
+          </div>
+          <div class="text-tips text-tips-right text-right" v-if="roomState.state < 3">剩余：{{posState.right.cards.length}}张</div>
+        </div>
+        <!-- 底牌列表 -->
+        <div class="card-group card-group-top" :style="{width:posState.top.cards.length * 20 + 70 + 'px'}">
+          <div @dragStart="dragStart($event)" v-for="(card,index) in posState.top.cards" class="card" :style="{left:index * 20 + 'px'}"
+            :class="roomState.state >= 2 ? 'card-' + card.value + '-' + card.type : ' card-unknow' ">
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- 出牌区域 -->
+      <div class="screen-center">
+        <!-- 左家的出牌区域 -->
+        <div class="card-ctx card-ctx-left" :style="{width:posState.left.ctxCards.length * 20 + 70 + 'px'}">
+          <template v-if="roomState.state === 2">
+            <div v-if="!posState.left.isPass" @dragStart="dragStart($event)" v-for="(card,index) in posState.left.ctxCards"
+              class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+            </div>
+            <div v-if="posState.left.isPass" class="score-tipe">
+              不出
+            </div>
+          </template>
+          <span class="score-tipe" v-if="roomState.state == 1 && posState.left.callScore > -1">{{posState.left.callScore
+            > 0 ? posState.left.callScore + '分' : '不叫' }}</span>
+
+        </div>
+        <!-- 自己的出牌区域 -->
+        <div class="card-ctx card-ctx-self" :style="{width:posState.self.ctxCards.length * 20 + 70 + 'px'}">
+          <template v-if="roomState.state === 2">
+            <div v-if="!posState.self.isPass" @dragStart="dragStart($event)" v-for="(card,index) in posState.self.ctxCards"
+              class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+            </div>
+            <div v-if="posState.self.isPass" class="score-tipe">
+              不出
+            </div>
+          </template>
+          <span class="score-tipe" v-if="roomState.state == 1 && posState.self.callScore > -1">
+            {{posState.self.callScore
+            > 0 ? posState.self.callScore + '分' : '不叫' }}
+          </span>
+
+        </div>
+        <!-- 右家的出牌区域 -->
+        <div class="card-ctx card-ctx-right" :style="{width:posState.right.ctxCards.length * 20 + 70 + 'px'}">
+          <template v-if="roomState.state === 2">
+            <div v-if="!posState.right.isPass" @dragStart="dragStart($event)" v-for="(card,index) in posState.right.ctxCards"
+              class="card" :class="'card-' + card.value + '-' + card.type" :style="{left:index * 20 + 'px'}">
+            </div>
+            <div v-if="posState.right.isPass" class="score-tipe">
+              不出
+            </div>
+          </template>
+          <span class="score-tipe" v-if="roomState.state == 1 && posState.right.callScore > -1">{{posState.right.callScore
+            > 0 ? posState.right.callScore + '分' : '不叫' }}</span>
+
+        </div>
+      </div>
+      <!-- 玩家头像 -->
+      <div class="players">
+        <div class="screen-center">
+          <div class="player-wrapper player-left" v-if="posState.left.state">
+            <div class="player-photo" :class="{'player-photo-king':posState.left.isDizhu}"></div>
+            <div class="player-name text-center">{{posState.left.name}}</div>
+            <div class="text-center player-status" v-if="posState.left.state === 2 && (roomState.state === 0 || roomState.state === 3)">准备</div>
+            <!-- <div class="text-center" v-if="posState.left.isDizhu">
+            <img src="images/dizhu.png" alt="">
+          </div> -->
+          </div>
+          <div class="player-wrapper player-right" v-if="posState.right.state">
+            <div class="player-photo" :class="{'player-photo-king':posState.right.isDizhu}"></div>
+            <div class="player-name text-center">{{posState.right.name}}</div>
+            <div class="text-center player-status" v-if="posState.right.state === 2 && (roomState.state === 0 || roomState.state === 3)">准备</div>
+            <!-- <div class="text-center" v-if="posState.right.isDizhu">
+            <img src="images/dizhu.png" alt="">
+          </div> -->
+          </div>
+
+        </div>
+
+        <div class="player-wrapper player-self" v-if="roomState.state === 0 || (roomState.state === 3 && posState.self.state === 2)">
+          <div class="player-photo" :class="{'player-photo-king':posState.self.isDizhu}"></div>
+          <div class="player-name text-center">{{posState.self.name}}</div>
+          <div class="text-center player-status" v-if="posState.self.state === 2 && (roomState.state === 0 || roomState.state === 3)">准备</div>
+          <!-- <div class="text-center" v-if="posState.self.isDizhu">
+          <img src="images/dizhu.png" alt="">
+        </div> -->
+        </div>
+      </div>
 
     </div>
-    <script src="/js/vue.min.js"></script>
-    <script src="socket.io/socket.io.js"></script>
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/layer/layer.js"></script>
-    <script src="/js/parser.js"></script>
-    <script>
+
+  </div>
+  <script src="/js/vue.min.js"></script>
+  <script src="socket.io/socket.io.js"></script>
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/layer/layer.js"></script>
+  <script src="/js/parser.js"></script>
+  <script>
 
 
 
 
 
-        function createClient(url) {
-            var socket = io.connect('ws://' + url);
-            return socket;
-        }
+    function createClient(url) {
+      var socket = io.connect('ws://' + url);
+      return socket;
+    }
 
-        var vm = new Vue({
-            el: "#app",
-            data: function () {
-                return {
-                    where: 1,//0登录界面 1大厅 2房间,
-                    posId: '',//座位号
-                    deskId: '',//桌号
-                    desks: [],
-                    client: '',
+    var vm = new Vue({
+      el: "#app",
+      data: function () {
+        return {
+          where: 0,//0登录界面 1大厅 2房间,
+          posId: '',//座位号
+          deskId: '',//桌号
+          desks: [],
+          client: '',
 
-                    cards: [],
+          cards: [],
 
-                    //房间状态
-                    roomState: {
-                        state: 0,//0准备状态 1叫分状态 2打牌状态
-                        ctxPos: '', //当前该哪个座位谁出牌或叫分 left right or self
-                        ctxCard: { //上家玩家的牌型
-                            len: 0,
-                            key: '',
-                            type: '',
-                            ctxPos: ''
-                        },
-                        ctxScore: [],
-                        timeout: 15,
-
-                    },
-                    //座位状态
-                    posState: {
-                        top: {
-                            cards: []
-                        },
-                        left: {
-                            state: 0,//0没人，1未准备 2准备
-                            cards: [],
-                            ctxCards: [],
-                            callScore: -1,
-                            name: '游客'
-                        },
-                        right: {
-                            state: 0,//0没人，1未准备 2准备
-                            cards: [],
-                            ctxCards: [],
-                            callScore: -1,
-                            name: '游客'
-                        },
-                        self: {
-                            state: 0,//0没人，1未准备 2准备
-                            cards: [],
-                            ctxCards: [],
-                            callScore: -1,
-                            name: '游客'
-                        }
-                    }
-                }
+          //房间状态
+          roomState: {
+            state: 0,//0准备状态 1叫分状态 2打牌状态 3结束状态
+            ctxPos: '', //当前该哪个座位谁出牌或叫分 left right or self
+            ctxCard: { //上家玩家的牌型
+              len: 0,
+              key: '',
+              type: '',
+              ctxPos: ''
             },
-            mounted: function () {
-                var self = this;
-                this.$nextTick(function () {
-                    document.oncontextmenu = function (e) {
-                        e.preventDefault();
-                        self.playCards();
-                    };
+            ctxScore: [],
+            timeout: 15,
 
-                    this.client = createClient(location.host);
-
-                    this.client.on('MESSAGE', function (data) {
-                        layer.msg(data.msg);
-                    }.bind(this));
-
-                    this.client.on('LOGIN_SUCCESS', function (data) {
-                        this.desks = data;
-                    }.bind(this));
-
-                    this.client.on('SITDOWN_SUCCESS', function (data) {
-                        this.where = 2;
-                        this.posId = data.posId;
-                        this.deskId = data.deskId;
-                        data.posInfos.forEach(function (pos) {
-                            this.updatePosStatus(pos.posId, pos.state, pos.name);
-                        }.bind(this))
-
-                        layer.closeAll();
-                    }.bind(this));
-
-                    this.client.on('SITDOWN_ERROR', function (data) {
-                        layer.closeAll();
-                        layer.msg(data.msg);
-                    }.bind(this));
-
-
-                    this.client.on('UNSITDOWN_SUCCESS', function (data) {
-                        this.resetRoomStatus();
-                        this.desks = data;
-                        layer.closeAll();
-                    }.bind(this));
-
-                    this.client.on('REFRESH_LIST', function (data) {
-                        this.desks = data;
-                    }.bind(this));
-
-                    this.client.on('STATUS_CHANGE', function (data) {
-                        this.updateHouseStatus(data.deskId, data.posId, data.state);
-                    }.bind(this));
-
-                    this.client.on('POS_STATUS_CHANGE', function (data) {
-                        this.updatePosStatus(data.posId, data.state);
-                    }.bind(this));
-
-                    this.client.on('POS_STATUS_RESET', function (data) {
-                        data.pos.forEach(function (pos) {
-                            this.updatePosStatus(pos.posId, data.state);
-                        }.bind(this));
-                    }.bind(this));
-
-                    this.client.on('ROOM_STATUS_CHANGE', function (data) {
-                        this.roomState.state = data.state;
-                    }.bind(this));
-
-                    this.client.on('FORCE_EXIT_EV', function (data) {
-                        layer.msg(data.msg);
-
-                        this.roomState.state = 0;
-                        this.posState.left.callScore = -1;
-                        this.posState.right.callScore = -1;
-                        this.posState.self.callScore = -1;
-
-                    }.bind(this));
-
-                    this.client.on('PREPARE_SUCCESS', function (data) {
-                        this.posState.self.state = 2;
-                        layer.closeAll();
-                    }.bind(this));
-
-                    //游戏开始
-                    this.client.on('GAME_START', function (data) {
-                        this.roomState.state = 1;
-                        this.initCards(data.cards);
-                    }.bind(this));
-
-
-                    //叫分事件
-                    this.client.on('CTX_USER_CHANGE', function (data) {
-                        this.updateCtxInfo(data);
-                    }.bind(this));
-
-                    //显示底牌事件
-                    this.client.on('SHOW_TOP_CARD', function (data) {
-                        this.roomState.state = 2;
-                        var direct = this.getDirectionByPosId(data.dizhuPosId);
-                        if (direct == 'self') {
-                            data.topCards.forEach(function (card) {
-                                card.selected = true;
-                            })
-                            this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards).sort(function (a, b) {
-                                return a.value - b.value;
-                            });
-                        } else {
-                            this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards);
-                        }
-                        this.posState.top.cards = data.topCards;
-                        this.roomState.ctxPos = direct;
-                        this.roomState.timeout = data.timeout;
-                        this.startTimer(this.autoPlayCards.bind(this));
-                    }.bind(this));
-
-
-
-                    this.client.on('CTX_PLAY_CHANGE', function (data) {
-                        var direct = this.getDirectionByPosId(data.ctxData.posId);
-                        this.posState[direct].ctxCards = data.ctxData.cards;
-                        if (!data.pass) {
-                            this.roomState.ctxCard.len = data.ctxData.len;
-                            this.roomState.ctxCard.key = data.ctxData.key;
-                            this.roomState.ctxCard.type = data.ctxData.type;
-                            this.roomState.ctxCard.ctxPos = direct;
-                        }
-                        this.roomState.ctxPos = this.getDirectionByPosId(data.posId);
-                        this.roomState.timeout = data.timeout;
-                        this.startTimer(this.autoPlayCards.bind(this));
-
-
-                    }.bind(this));
-
-                    this.client.on('PLAY_CARD_ERROR', function (data) {
-                        layer.msg('你的牌不符合规则');
-                    }.bind(this))
-                    this.client.on('PLAY_CARD_SUCCESS', function (cards) {
-                        this.removeCards(cards);
-                        this.posState.self.ctxCards = cards;
-                    }.bind(this))
-
-                    this.client.on('GAME_OVER', function (data) {
-                        var msg = data.winner.indexOf(this.posId) > - 1 ? '恭喜你，你赢了' : '很遗憾，你输了';
-                        layer.msg(msg);
-                    }.bind(this))
-
-                }.bind(this));
+          },
+          //座位状态
+          posState: {
+            top: {
+              cards: []
             },
-            methods: {
-                getDesk: function (deskId) {
-                    for (var i = 0, len = this.desks.length; i < len; i++) {
-                        var desk = this.desks[i];
-                        if (desk.deskId === deskId) {
-                            return desk;
-                        }
-                    }
-                    return null;
-                },
-                getPos: function (deskId, posId) {
-                    var desk = this.getDesk(deskId);
-                    if (desk) {
-                        for (var i = 0, len = desk.positions.length; i < len; i++) {
-                            var pos = desk.positions[i];
-                            if (pos.posId === posId) {
-                                return pos;
-                            }
-                        }
-                    }
-                    return null;
-                },
-                callScore: function (score) {
-                    this.posState.self.callScore = score;
-                    this.roomState.ctxPos = '';
-                    this.client.emit('CALL_SCORE', { score: score });
-                },
-                updateCtxInfo: function (data) {
-                    var ctx = data;
-                    var direction = this.getDirectionByPosId(ctx.ctxPos);
-                    ctx.ctxPos = direction;
-                    this.roomState.ctxPos = ctx.ctxPos;
-                    this.roomState.ctxScore = ctx.ctxScore;
-                    this.roomState.timeout = ctx.timeout;
-                    if (ctx.calledScores) {
-                        for (var key in ctx.calledScores) {
-                            if (ctx.calledScores.hasOwnProperty(key)) {
-                                var posId = Number(key);
-                                var direct = this.getDirectionByPosId(posId);
-                                this.posState[direct].callScore = ctx.calledScores[key];
-                            }
-                        }
-                    }
-                    this.startTimer(function () {
-                        if (this.roomState.ctxPos == 'self') {
-                            this.callScore(0);
-                        }
-                    });
-                },
-                startTimer: function () {
-                    var timer = null;
-                    return function (fn) {
-                        var self = this;
-                        if (timer) {
-                            clearInterval(timer);
-                        }
-                        timer = setInterval(function () {
-                            self.roomState.timeout--;
-                            if (self.roomState.timeout <= 0) {
-                                clearInterval(timer);
-                                timer = null;
-                                self.roomState.timeout = 0;
-                                fn && fn.call(self);
-                            }
-                        }, 1000)
-
-                    }
-                }(),
-                updateHouseStatus: function (deskId, posId, state) {
-                    var pos = this.getPos(deskId, posId);
-                    if (pos) {
-                        pos.state = state;
-                    }
-                },
-                //通过posId获取是哪个方向的坐位
-                getDirectionByPosId: function (posId) {
-                    var mapping = {
-                        0: {
-                            0: 'self',
-                            1: 'right',
-                            2: 'left',
-                            3: 'top',
-                        },
-                        1: {
-                            1: 'self',
-                            2: 'right',
-                            0: 'left',
-                            3: 'top',
-                        },
-                        2: {
-                            2: 'self',
-                            0: 'right',
-                            1: 'left',
-                            3: 'top',
-                        }
-
-                    }
-                    return mapping[this.posId][posId];
-                },
-                updatePosStatus: function (posId, state, name) {
-                    var redirection = this.getDirectionByPosId(posId);
-                    this.posState[redirection].state = state;
-                    this.posState[redirection].name = name || '';
-
-                },
-                sitDown: function (deskId, pos) {
-                    if (pos.state === 0) {
-                        layer.load({ type: 3 });
-                        this.client.emit('SITDOWN', { deskId: deskId, posId: pos.posId });
-
-                    }
-                },
-                exitRoom: function () {
-                    this.client.emit('UNSITDOWN');
-                    layer.load({ type: 3 });
-                },
-                resetRoomStatus: function () {
-                    this.where = 1;
-                    this.posId = '';
-                    this.deskId = '';
-                    this.posState.self.state = 0;
-                    this.roomState.state = 0;
-                    this.posState.left.callScore = -1;
-                    this.posState.right.callScore = -1;
-                    this.posState.self.callScore = -1;
-                },
-                getSelectdCards: function () {
-                    return this.posState.self.cards.filter(function (card) {
-                        return card.selected;
-                    });
-                },
-                getCardIndex: function (card) {
-                    var cards = this.posState.self.cards;
-                    for (var i = 0, len = cards.length; i < len; i++) {
-                        var item = cards[i];
-                        if (card.value === item.value && card.type === item.type) {
-                            return i;
-                        }
-                    }
-                    return -1;
-                },
-                removeCards: function (cards) {
-                    cards.forEach(function (card) {
-                        var index = this.getCardIndex(card);
-                        if (index !== -1) {
-                            this.posState.self.cards.splice(index, 1);
-                        }
-                    }.bind(this));
-                },
-
-
-                playCards: function (cards) {
-                    if (this.roomState.ctxPos !== 'self') {
-                        return layer.msg('未到出牌时间');
-                    }
-
-                    var cards = this.getSelectdCards();
-                    var ret = validate(cards);
-                    if (!ret.status) {
-                        return layer.msg('你的牌不符合规则');
-                    }
-
-                    this.client.emit('PLAY_CARD', cards);
-                },
-                //不出
-                passCards: function () {
-                    this.client.emit('PLAY_CARD', [])
-                },
-                autoPlayCards: function () {
-                    if (this.roomState.ctxPos === 'self') {
-                        this.client.emit('PLAY_CARD', [this.posState.self.cards[0]]);
-                    }
-                },
-                prepare: function () {
-                    layer.load({ type: 3 });
-                    this.client.emit('PREPARE');
-                },
-                dragStart: function (e) {
-                    e.preventDefault();
-                },
-                selectCard: function (card) {
-                    card.selected = !card.selected;
-                },
-                initCards: function (cards) {
-                    cards.forEach(function (cardGroup, index) {
-                        cardGroup.cards.forEach(function (card) {
-                            card.selected = false;
-                        });
-                        var posId = cardGroup.id;
-                        var redirection = this.getDirectionByPosId(posId);
-                        this.posState[redirection].cards = cardGroup.cards;
-                    }.bind(this));
-                }
+            left: {
+              state: 0,//0没人，1未准备 2准备
+              cards: [],
+              ctxCards: [],
+              isPass: false,
+              isDizhu: false,
+              callScore: -1,
+              name: '游客'
+            },
+            right: {
+              state: 0,//0没人，1未准备 2准备
+              cards: [],
+              ctxCards: [],
+              isPass: false,
+              isDizhu: false,
+              callScore: -1,
+              name: '游客'
+            },
+            self: {
+              state: 0,//0没人，1未准备 2准备
+              cards: [],
+              ctxCards: [],
+              isPass: false,
+              isDizhu: false,
+              callScore: -1,
+              name: ''
             }
-        })
+          }
+        }
+      },
+      mounted: function () {
+        var self = this;
+        this.$nextTick(function () {
+          document.oncontextmenu = function (e) {
+            e.preventDefault();
+            self.playCards();
+          };
 
-    </script>
+          this.client = createClient(location.host);
+
+          this.client.on('MESSAGE', function (data) {
+            layer.msg(data.msg);
+          }.bind(this));
+
+
+          this.client.on('LOGIN_SUCCESS', function (data) {
+            this.desks = data;
+            this.where = 1;
+            layer.closeAll();
+          }.bind(this));
+
+           this.client.on('LOGIN_FAIL', function (data) {
+            layer.closeAll();
+            layer.msg(data.msg);
+          }.bind(this));
+
+
+          this.client.on('SITDOWN_SUCCESS', function (data) {
+            this.where = 2;
+            this.posId = data.posId;
+            this.deskId = data.deskId;
+            data.posInfos.forEach(function (pos) {
+              this.updatePosStatus(pos.posId, pos.state, pos.userName);
+            }.bind(this))
+            this.posState.self.isDizhu = false;
+
+            layer.closeAll();
+          }.bind(this));
+
+          this.client.on('SITDOWN_ERROR', function (data) {
+            layer.closeAll();
+            layer.msg(data.msg);
+          }.bind(this));
+
+
+          this.client.on('UNSITDOWN_SUCCESS', function (data) {
+            this.resetRoomStatus();
+            this.desks = data;
+            layer.closeAll();
+          }.bind(this));
+
+          this.client.on('REFRESH_LIST', function (data) {
+            this.desks = data;
+          }.bind(this));
+
+          this.client.on('STATUS_CHANGE', function (data) {
+            this.updateHouseStatus(data.deskId, data.posId, data.state);
+          }.bind(this));
+
+          this.client.on('POS_STATUS_CHANGE', function (data) {
+            this.updatePosStatus(data.posId, data.state,data.userName);
+          }.bind(this));
+
+          this.client.on('POS_STATUS_RESET', function (data) {
+            data.pos.forEach(function (pos) {
+              this.updatePosStatus(pos.posId, data.state);
+            }.bind(this));
+          }.bind(this));
+
+          this.client.on('ROOM_STATUS_CHANGE', function (data) {
+            this.roomState.state = data.state;
+          }.bind(this));
+
+          this.client.on('FORCE_EXIT_EV', function (data) {
+            layer.msg(data.msg);
+
+            this.roomState.state = 3;
+            this.posState.left.callScore = -1;
+            this.posState.right.callScore = -1;
+            this.posState.self.callScore = -1;
+
+            var direct = this.getDirectionByPosId(data.posId);
+            this.posState[direct].ctxCards = [];
+            this.posState[direct].cards = [];
+            this.startTimer(false);
+
+          }.bind(this));
+
+          this.client.on('PREPARE_SUCCESS', function (data) {
+            this.posState.self.state = 2;
+            layer.closeAll();
+          }.bind(this));
+
+          //游戏开始
+          this.client.on('GAME_START', function (data) {
+            this.roomState.state = 1;
+            this.initCards(data.cards);
+            this.posState.left.callScore = -1;
+            this.posState.right.callScore = -1;
+            this.posState.self.callScore = -1;
+
+            this.posState.left.isPass = false;
+            this.posState.right.isPass = false;
+            this.posState.self.isPass = false;
+
+            this.posState.left.isDizhu = false;
+            this.posState.right.isDizhu = false;
+            this.posState.self.isDizhu = false;
+          }.bind(this));
+
+
+          //叫分事件
+          this.client.on('CTX_USER_CHANGE', function (data) {
+            this.updateCtxInfo(data);
+          }.bind(this));
+
+          //显示底牌事件
+          this.client.on('SHOW_TOP_CARD', function (data) {
+            this.roomState.state = 2;
+            var direct = this.getDirectionByPosId(data.dizhuPosId);
+            if (direct == 'self') {
+              data.topCards.forEach(function (card) {
+                card.selected = true;
+              })
+            }
+            this.posState[direct].cards = this.posState[direct].cards.concat(data.topCards).sort(function (a, b) {
+              return a.value - b.value;
+            });
+            this.posState.top.cards = data.topCards;
+            this.roomState.ctxPos = direct;
+            this.posState[direct].isDizhu = true;
+            this.roomState.timeout = data.timeout;
+            this.startTimer(this.autoPlayCards.bind(this));
+          }.bind(this));
+
+
+
+          this.client.on('CTX_PLAY_CHANGE', function (data) {
+            var direct = this.getDirectionByPosId(data.ctxData.posId);
+            this.posState[direct].ctxCards = data.ctxData.cards;
+            this.posState[direct].isPass = data.isPass;
+            if (!data.isPass) {
+              this.roomState.ctxCard.len = data.ctxData.len;
+              this.roomState.ctxCard.key = data.ctxData.key;
+              this.roomState.ctxCard.type = data.ctxData.type;
+              this.roomState.ctxCard.ctxPos = direct;
+            }
+            this.removeCards(direct, data.ctxData.cards);
+            this.roomState.ctxPos = this.getDirectionByPosId(data.posId);
+            //如果是自己出牌就清空上一轮自己出的牌
+            if (this.roomState.ctxPos === 'self') {
+              this.posState.self.ctxCards = [];
+            }
+            this.posState[this.roomState.ctxPos].isPass = false;
+            this.roomState.timeout = data.timeout;
+            this.startTimer(this.autoPlayCards.bind(this));
+
+
+          }.bind(this));
+
+          this.client.on('PLAY_CARD_ERROR', function (data) {
+            layer.msg('你的牌不符合规则');
+          }.bind(this))
+          this.client.on('PLAY_CARD_SUCCESS', function (cards) {
+            this.removeCards('self', cards);
+            this.posState.self.ctxCards = cards;
+          }.bind(this))
+
+          this.client.on('GAME_OVER', function (data) {
+            var msg = data.winner.indexOf(this.posId) > - 1 ? '恭喜你，你赢了' : '很遗憾，你输了';
+            var icon = data.winner.indexOf(this.posId) > - 1 ? 6 : 5;
+            layer.alert(msg, {
+              icon: icon,
+            });
+            this.startTimer(false);//停止计时器
+            this.roomState.state = 3;
+
+            this.posState.left.state = 1;
+            this.posState.left.callScore = -1;
+            this.posState.left.isPass = false;
+
+            this.posState.right.state = 1;
+            this.posState.right.callScore = -1;
+            this.posState.right.isPass = false;
+
+            this.posState.self.state = 1;
+            this.posState.self.callScore = -1;
+            this.posState.self.isPass = false;
+
+          }.bind(this))
+
+        }.bind(this));
+      },
+      methods: {
+        login: function () {
+          if (!this.posState.self.name) {
+            return layer.msg('请输入名字');
+          }
+          if (this.posState.self.name.length > 10) {
+            return layer.msg('名字不超过10个字');
+          }
+          layer.load({ type: 3 });
+          this.client.emit('LOGIN', this.posState.self.name);
+        },
+        getDesk: function (deskId) {
+          for (var i = 0, len = this.desks.length; i < len; i++) {
+            var desk = this.desks[i];
+            if (desk.deskId === deskId) {
+              return desk;
+            }
+          }
+          return null;
+        },
+        getPos: function (deskId, posId) {
+          var desk = this.getDesk(deskId);
+          if (desk) {
+            for (var i = 0, len = desk.positions.length; i < len; i++) {
+              var pos = desk.positions[i];
+              if (pos.posId === posId) {
+                return pos;
+              }
+            }
+          }
+          return null;
+        },
+        callScore: function (score) {
+          this.posState.self.callScore = score;
+          this.roomState.ctxPos = '';
+          this.client.emit('CALL_SCORE', { score: score });
+        },
+        updateCtxInfo: function (data) {
+          var ctx = data;
+          var direction = this.getDirectionByPosId(ctx.ctxPos);
+          ctx.ctxPos = direction;
+          this.roomState.ctxPos = ctx.ctxPos;
+          this.roomState.ctxScore = ctx.ctxScore;
+          this.roomState.timeout = ctx.timeout;
+          if (ctx.calledScores) {
+            for (var key in ctx.calledScores) {
+              if (ctx.calledScores.hasOwnProperty(key)) {
+                var posId = Number(key);
+                var direct = this.getDirectionByPosId(posId);
+                this.posState[direct].callScore = ctx.calledScores[key];
+              }
+            }
+          }
+          this.startTimer(function () {
+            if (this.roomState.ctxPos == 'self') {
+              this.callScore(0);
+            }
+          });
+        },
+        startTimer: function () {
+          var timer = null;
+          return function (fn) {
+            var self = this;
+            if (timer) {
+              clearInterval(timer);
+              timer = null;
+              if (!fn) {
+                return;
+              }
+            }
+            timer = setInterval(function () {
+              self.roomState.timeout--;
+              if (self.roomState.timeout <= 0) {
+                clearInterval(timer);
+                timer = null;
+                self.roomState.timeout = 0;
+                fn && fn.call(self);
+              }
+            }, 1000)
+
+          }
+        }(),
+        updateHouseStatus: function (deskId, posId, state) {
+          var pos = this.getPos(deskId, posId);
+          if (pos) {
+            pos.state = state;
+          }
+        },
+        //通过posId获取是哪个方向的坐位
+        getDirectionByPosId: function (posId) {
+          var mapping = {
+            0: {
+              0: 'self',
+              1: 'right',
+              2: 'left',
+              3: 'top',
+            },
+            1: {
+              1: 'self',
+              2: 'right',
+              0: 'left',
+              3: 'top',
+            },
+            2: {
+              2: 'self',
+              0: 'right',
+              1: 'left',
+              3: 'top',
+            }
+
+          }
+          return mapping[this.posId][posId];
+        },
+        updatePosStatus: function (posId, state, name) {
+          var direct = this.getDirectionByPosId(posId);
+          this.posState[direct].state = state;
+          if(name){
+            this.posState[direct].name = name;
+          }
+          this.posState[direct].isDizhu = false;
+          this.startTimer(false);
+
+        },
+        sitDown: function (deskId, pos) {
+          if (pos.state === 0) {
+            layer.load({ type: 3 });
+            this.client.emit('SITDOWN', { deskId: deskId, posId: pos.posId });
+
+          }
+        },
+        exitRoom: function () {
+          this.client.emit('UNSITDOWN');
+          layer.load({ type: 3 });
+        },
+        resetRoomStatus: function () {
+          this.where = 1;
+          this.posId = '';
+          this.deskId = '';
+          this.posState.self.state = 0;
+          this.roomState.state = 0;
+          this.posState.left.callScore = -1;
+          this.posState.right.callScore = -1;
+          this.posState.self.callScore = -1;
+        },
+        getSelectdCards: function () {
+          return this.posState.self.cards.filter(function (card) {
+            return card.selected;
+          });
+        },
+        getCardIndex: function (pos, card) {
+          var cards = this.posState[pos].cards;
+          for (var i = 0, len = cards.length; i < len; i++) {
+            var item = cards[i];
+            if (card.value === item.value && card.type === item.type) {
+              return i;
+            }
+          }
+          return -1;
+        },
+        removeCards: function (pos, cards) {
+          cards.forEach(function (card) {
+            var index = this.getCardIndex(pos, card);
+            if (index !== -1) {
+              this.posState[pos].cards.splice(index, 1);
+            }
+          }.bind(this));
+        },
+
+
+        playCards: function (cards) {
+          if (this.roomState.state !== 2) {
+            return;
+          }
+          if (this.roomState.ctxPos !== 'self') {
+            return //layer.msg('未到出牌时间');
+          }
+
+          var cards = this.getSelectdCards();
+          var ret = validate(cards);
+          if (!ret.status) {
+            return layer.msg('你的牌不符合规则');
+          }
+
+          this.client.emit('PLAY_CARD', cards);
+        },
+        //不出
+        passCards: function () {
+          this.client.emit('PLAY_CARD', [])
+        },
+        autoPlayCards: function () {
+          if (this.roomState.ctxPos === 'self') {
+            var cards = this.roomState.ctxCard.ctxPos === 'self' ? [this.posState.self.cards[0]] : [];
+            this.client.emit('PLAY_CARD', cards);
+          }
+        },
+        prepare: function () {
+          layer.load({ type: 3 });
+          this.client.emit('PREPARE');
+        },
+        dragStart: function (e) {
+          e.preventDefault();
+        },
+        selectCard: function (card) {
+          card.selected = !card.selected;
+        },
+        initCards: function (cards) {
+          cards.forEach(function (cardGroup, index) {
+            cardGroup.cards.forEach(function (card) {
+              card.selected = false;
+            });
+            var posId = cardGroup.id;
+            var redirection = this.getDirectionByPosId(posId);
+            this.posState[redirection].cards = cardGroup.cards;
+          }.bind(this));
+        }
+      }
+    })
+
+  </script>
 </body>
 
 </html>
