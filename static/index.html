@@ -17,7 +17,8 @@
         <div class="row title">
           欢迎来到Remember世界
         </div>
-        <input type="text" class="input" placeholder="给自己取一个名字" v-model.trim="posState.self.name"><button @click="login">确定</button>
+        <input type="text" class="input" placeholder="给自己取一个名字" v-model.trim="posState.self.name" @keyup.enter="login"><button
+          @click="login">确定</button>
       </div>
     </div>
 
@@ -28,7 +29,7 @@
         <div v-for="position in desk.positions" class="position" :class="{has:position.state,position0:position.posId === 0,position1:position.posId === 1,position2:position.posId === 2}">
           <span class="position-image" :class="{has:position.state}" @click="sitDown(desk.deskId,position)">
           </span>
-          <span class="position-text" v-if="position.state">{{position.userName}}</span>
+          <!-- <span class="position-text" v-if="position.state">{{position.userName}}</span> -->
         </div>
         <div class="position-center">{{desk.deskId}}</div>
       </div>
@@ -280,7 +281,7 @@
             layer.closeAll();
           }.bind(this));
 
-           this.client.on('LOGIN_FAIL', function (data) {
+          this.client.on('LOGIN_FAIL', function (data) {
             layer.closeAll();
             layer.msg(data.msg);
           }.bind(this));
@@ -319,7 +320,8 @@
           }.bind(this));
 
           this.client.on('POS_STATUS_CHANGE', function (data) {
-            this.updatePosStatus(data.posId, data.state,data.userName);
+            var direct = this.getDirectionByPosId(data.posId);
+            this.updatePosStatus(data.posId, data.state, data.userName);
           }.bind(this));
 
           this.client.on('POS_STATUS_RESET', function (data) {
@@ -367,6 +369,12 @@
             this.posState.left.isDizhu = false;
             this.posState.right.isDizhu = false;
             this.posState.self.isDizhu = false;
+
+            this.posState.left.ctxCards = [];
+            this.posState.right.ctxCards = [];
+            this.posState.self.ctxCards = [];
+
+
           }.bind(this));
 
 
@@ -430,9 +438,31 @@
           this.client.on('GAME_OVER', function (data) {
             var msg = data.winner.indexOf(this.posId) > - 1 ? '恭喜你，你赢了' : '很遗憾，你输了';
             var icon = data.winner.indexOf(this.posId) > - 1 ? 6 : 5;
-            layer.alert(msg, {
+
+
+            var content = '<div class="msg-title msg-' + (icon === 6 ? 'success' : 'fail') + '">' + msg + '</div><div>本局游戏统计如下：</div>';
+            var score = data.score * data.ratio * 2;
+            var halfScore = score / 2;
+            data.winner.forEach(function (id) {
+              var direct = this.getDirectionByPosId(id);
+              content += '<div>' + this.posState[direct].name + '：+' + (score / data.winner.length) + '分</div>';
+            }.bind(this));
+            data.loser.forEach(function (id) {
+              var direct = this.getDirectionByPosId(id);
+              content += '<div>' + this.posState[direct].name + '：-' + (score / data.loser.length) + '分</div>';
+            }.bind(this));
+
+
+            layer.open({
               icon: icon,
+              title: '本局结果',
+              content: content
             });
+
+
+            // layer.alert(msg, {
+            //   icon: icon,
+            // });
             this.startTimer(false);//停止计时器
             this.roomState.state = 3;
 
@@ -568,7 +598,7 @@
         updatePosStatus: function (posId, state, name) {
           var direct = this.getDirectionByPosId(posId);
           this.posState[direct].state = state;
-          if(name){
+          if (name) {
             this.posState[direct].name = name;
           }
           this.posState[direct].isDizhu = false;
