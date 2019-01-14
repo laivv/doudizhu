@@ -29,6 +29,7 @@ function Game() {
   this.contextCards = [];
   this.contextScore = [1, 2, 3];
   this.status = 0; //0未开始 1叫分 2游戏中 3结束 4需要重发 5错误
+  this.ratio = 1;//分数翻倍数，
   this.lastCardInfo = {
     posId: '',
     len: 0,
@@ -40,6 +41,12 @@ function Game() {
     0: -1,
     1: -1,
     2: -1
+  }
+  // 每个位置出了几次牌 ，为了统计是否出现春天或反春
+  this.sumCount = {
+    0: 0,
+    1: 0,
+    2: 0,
   }
 
 }
@@ -200,6 +207,7 @@ Object.assign(
       this.contextCards = [];
       this.contextScore = [1, 2, 3];
       this.status = 0; //0未开始 1叫分 2游戏中 3结束 4需要重发 5错误
+      this.ratio = 1;
       this.lastCardInfo = {
         posId: '',
         len: 0,
@@ -211,6 +219,11 @@ Object.assign(
         0: -1,
         1: -1,
         2: -1
+      }
+      this.sumCount = {
+        0: 0,
+        1: 0,
+        2: 0,
       }
       return this;
 
@@ -278,12 +291,15 @@ Object.assign(
       return false;
     },
     getResult() {
-      const diZhuId = this.getMaxScoreInfo().posId;
+      const diZhuData = this.getMaxScoreInfo();
+      const diZhuId = diZhuData.posId;
       const posIds = [0, 1, 2];
       var winnerId = '';
       var ret = {
         winner: [],
-        loser: []
+        loser: [],
+        score: diZhuData.score,
+        ratio: this.isSpring() ? ++this.ratio : this.ratio
       }
       for (var i = 0; i < 3; i++) {
         if (!this.contextCards[i].cards.length) {
@@ -300,6 +316,15 @@ Object.assign(
         ret.loser.push(diZhuId);
       }
       return ret;
+    },
+    isSpring() {
+      const diZhuId = this.getMaxScoreInfo().posId;
+      const diZhuLen = this.getCardsByPosId(diZhuId).length;
+      const posIds = [0, 1, 2];
+      posIds.splice(posIds.indexOf(diZhuId), 1);
+      const playerLen1 = this.getCardsByPosId(posIds[0]).length;
+      const playerLen2 = this.getCardsByPosId(posIds[1]).length;
+      return (diZhuLen === 0 && playerLen1 === 17 && playerLen2 === 17) || (diZhuLen !== 0 && this.sumCount[diZhuId] === 1 && (playerLen1 === 0 || playerLen2 === 0))
     },
     next(posId, data) {
 
@@ -358,7 +383,13 @@ Object.assign(
             this.lastCardInfo.len = len
             this.lastCardInfo.key = key;
             this.lastCardInfo.posId = posId;
+
+            if (type === 'AAAA' || type === 'KING') {
+              this.ratio++;
+            }
+            this.sumCount[posId]++;
           }
+
 
           this.removeCards(data, posId);
           if (this.isGameOver()) {

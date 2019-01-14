@@ -573,4 +573,14 @@
            left:50%;
            transform: translate(-50%,-50%);
        }
+       .msg-title{
+        font-size: 20px;
+        margin-bottom: 5px;
+       }
+       .msg-success{
+           color:#29ba9d
+       }
+       .msg-fail{
+            color:#c80000
+        }
   
