@@ -557,6 +557,9 @@
        .login-wrapper{
            background: #ccc;
        }
+       .login-form{
+           white-space: nowrap;
+       }
        .input{
         height: 31px;
         border: none;
@@ -583,4 +586,54 @@
        .msg-fail{
             color:#c80000
         }
-  
+        
+        .msg-box{
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            word-spacing: -5px;
+        }
+        .msg-select{
+            outline: none;
+        }
+        .input.msg-input{
+            height: 22px;
+        }
+        .msg-btn{
+            height: 22px;
+            font-size: 10px;
+            line-height: 15px;
+            border-radius: 0px!important;
+        }
+        .msg-list{
+            min-height: 200px;
+            max-height: 400px;
+            overflow-x:hidden;
+            overflow-y:auto;
+            color:#fff;
+            margin-bottom:10px;
+            font-size: 12px;
+        }
+        .msg-item{
+            padding: 5px 0;
+            max-width: 220px;
+            word-break: break-all;
+        }
+        .msg-item-time{
+            padding-right: 10px;
+        }
+        .scroll-bar::-webkit-scrollbar {
+            width: 10px;    
+            height: 1px;
+        }
+        .scroll-bar::-webkit-scrollbar-thumb {
+            border-radius: 10px;
+             -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+             background: rgba(0, 0, 0, 0.1);
+        }
+        .scroll-bar::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }

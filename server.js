@@ -33,6 +33,13 @@ function time() {
 }
 
 
+var guid = function () {
+  var n = 0;
+  return function () {
+    return ++n;
+  }
+}();
+
 
 function GameServer(port) {
   this.clients = [];
@@ -228,6 +235,9 @@ const proto = {
 
           //通知在房间里的其它客户端，更新座位息
           this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 1, userName: this.getUserName(socket) }, socket);
+
+          //推送一条无关紧要的消息
+          socket.emit('USER_MESSAGE', { type: 'SYS', posId, msg: '欢迎来到we remember项目，租房时代的美好回忆！', id: guid(), time: time() })
         } else {
           //通知该客户端此座位被人占用
           socket.emit('SITDOWN_ERROR', { msg: '该位置已有人' });
@@ -274,11 +284,17 @@ const proto = {
             this.broadCastRoom('ROOM_STATUS_CHANGE', deskId, { state: 0 });
             //通知其它两位玩家当前玩家逃跑
             this.broadCastRoom('FORCE_EXIT_EV', deskId, { msg: '有玩家逃跑，游戏结束', posId });
+
             game.init();
+
           }
         }
         //通知当前玩家退出房间成功
         socket.emit('UNSITDOWN_SUCCESS', this.desks);
+
+
+        //推送一条无关紧要的消息
+        this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', posId, msg: '玩家 ' + this.getUserName(socket) + ' 退出房间', id: guid(), time: time() })
       });
 
       socket.on('PREPARE', data => {
@@ -346,6 +362,9 @@ const proto = {
         if (status == 4) {
           this.broadCastRoom('MESSAGE', deskId, { msg: '没有玩家叫分，重新发牌' });
           this.startGame(deskId);
+          //推送一条无关紧要的消息
+          this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', msg: '本局游戏无人叫分，重新发牌', id: guid(), time: time() })
+
         }
       });
 
@@ -438,6 +457,20 @@ const proto = {
 
         console.log('有客户端断开了连接 %s', time());
       })
+
+      socket.on('USER_MESSAGE', msg => {
+        const client = this.getClient(socket);
+        if (!client) {
+          return;
+        }
+        const { deskId, posId } = client;
+        if (!deskId) {
+          return;
+        }
+        this.broadCastRoom('USER_MESSAGE', deskId, { type: 'USER', posId, msg, time: time(), id: guid() })
+      })
+
+
     });
 
 
