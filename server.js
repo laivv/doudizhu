@@ -33,11 +33,18 @@ function time() {
 }
 
 
+var guid = function () {
+  var n = 0;
+  return function () {
+    return ++n;
+  }
+}();
+
 
 function GameServer(port) {
   this.clients = [];
   this.port = port;
-  this.desks = createDeskList(100);
+  this.desks = createDeskList(20);
   this.gameDatas = {};
 }
 const proto = {
@@ -205,6 +212,35 @@ const proto = {
         }
       });
 
+      //快速加入
+      socket.on('QUICK_JOIN', () => {
+        var ret = [];
+        this.desks.forEach(desk => {
+          let n = 0;
+          let item = {
+            deskId: desk.deskId,
+            positions: []
+          };
+          const positions = desk.positions;
+          positions.forEach(pos => {
+            if (pos.state > 0) {
+              n++;
+            } else {
+              item.positions.push(pos.posId)
+            }
+          });
+          if (n <= 2) {
+            ret.push(item);
+          }
+        });
+        ret = ret.sort((a, b) => {
+          return a.positions.length - b.positions.length;
+        });
+        const matched = ret.length ? ret[0] : false;
+        const data = matched ? { deskId: matched.deskId, posId: matched.positions[0], success: true } : { success: false }
+        socket.emit('QUICK_JOIN', data)
+
+      });
 
       socket.on('SITDOWN', data => {
         const client = this.getClient(socket);
@@ -228,6 +264,10 @@ const proto = {
 
           //通知在房间里的其它客户端，更新座位息
           this.broadCastRoom("POS_STATUS_CHANGE", deskId, { posId, state: 1, userName: this.getUserName(socket) }, socket);
+
+          //推送一条无关紧要的消息
+          socket.emit('USER_MESSAGE', { type: 'SYS', posId, msg: '欢迎您加入本房间，祝您游戏愉快！', id: guid(), time: time() });
+          this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', posId, msg: `玩家[${this.getUserName(socket)}]进入房间`, id: guid(), time: time() }, socket);
         } else {
           //通知该客户端此座位被人占用
           socket.emit('SITDOWN_ERROR', { msg: '该位置已有人' });
@@ -274,11 +314,17 @@ const proto = {
             this.broadCastRoom('ROOM_STATUS_CHANGE', deskId, { state: 0 });
             //通知其它两位玩家当前玩家逃跑
             this.broadCastRoom('FORCE_EXIT_EV', deskId, { msg: '有玩家逃跑，游戏结束', posId });
+
             game.init();
+
           }
         }
         //通知当前玩家退出房间成功
         socket.emit('UNSITDOWN_SUCCESS', this.desks);
+
+
+        //推送一条无关紧要的消息
+        this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', posId, msg: `玩家[${this.getUserName(socket)}]退出房间`, id: guid(), time: time() })
       });
 
       socket.on('PREPARE', data => {
@@ -346,6 +392,9 @@ const proto = {
         if (status == 4) {
           this.broadCastRoom('MESSAGE', deskId, { msg: '没有玩家叫分，重新发牌' });
           this.startGame(deskId);
+          //推送一条无关紧要的消息
+          this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', posId, msg: '本局游戏无人叫分，重新发牌', id: guid(), time: time() })
+
         }
       });
 
@@ -398,6 +447,7 @@ const proto = {
         if (!client) {
           return;
         }
+        const userName = this.getUserName(socket);
         const { deskId, posId } = client;
         this.removeClient(socket);
 
@@ -433,11 +483,27 @@ const proto = {
               game.init();
             }
           }
+          //推送一条无关紧要的消息
+          this.broadCastRoom('USER_MESSAGE', deskId, { type: 'SYS', posId, msg: `玩家[${userName}]退出房间`, id: guid(), time: time() })
           console.log('有客户端退出房间，桌号：%s，座位：%s，时间：', deskId, posId, time());
         }
 
         console.log('有客户端断开了连接 %s', time());
       })
+
+      socket.on('USER_MESSAGE', msg => {
+        const client = this.getClient(socket);
+        if (!client) {
+          return;
+        }
+        const { deskId, posId } = client;
+        if (!deskId) {
+          return;
+        }
+        this.broadCastRoom('USER_MESSAGE', deskId, { type: 'USER', posId, msg, time: time(), id: guid() })
+      })
+
+
     });
 
 
