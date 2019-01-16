@@ -3,19 +3,19 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>斗地主</title>
+  <title>在线斗地主</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
   <div id="app" v-cloak>
-
+    <!-- 登录界面 -->
     <div class="full-screen login-wrapper" v-if="where === 0">
       <div class="login-panel  layout-center">
         <div class="row title">
-          欢迎来到Remember世界
+          登录游戏服务器
         </div>
         <div class="login-form">
           <input type="text" class="input" placeholder="给自己取一个名字" v-model.trim="posState.self.name" @keyup.enter="login"><button
@@ -27,6 +27,9 @@
 
     <!-- 大厅 -->
     <div class="full-screen house" v-if="where === 1">
+      <div class="row text-right quick-bar">
+        <button @click="quickJoin">快速加入</button>
+      </div>
       <div v-for="desk in desks" class="desk">
         <div v-for="position in desk.positions" class="position" :class="{has:position.state,position0:position.posId === 0,position1:position.posId === 1,position2:position.posId === 2}">
           <span class="position-image" :class="{has:position.state}" @click="sitDown(desk.deskId,position)">
@@ -185,13 +188,13 @@
       <div class="msg-box">
         <div class="msg-list scroll-bar" ref="msgBox">
           <div class="msg-item" v-for="msg in msgList" :key="msg.id">
-            <span  v-if="msg.type === 'USER'">
-                <span class="msg-item-time">[{{msg.time}}]</span>
-                <span style="color:red">{{msg.name}}</span> 说：{{msg.content}}
+            <span v-if="msg.type === 'USER'">
+              <span class="msg-item-time">[{{msg.time}}]</span>
+              <span style="color:red">{{msg.name}}</span> 说：{{msg.content}}
             </span>
             <span style="color:red;padding:15px 0" v-if="msg.type === 'SYS'">
-                <span class="msg-item-time">[{{msg.time}}] </span>系统消息：{{msg.content}}
-              </span>
+              <span class="msg-item-time">[{{msg.time}}] </span>系统消息：{{msg.content}}
+            </span>
           </div>
         </div>
         <input type="text" class="input msg-input" ref="msgInput" @keyup.enter="sendMessage(false)">
@@ -224,10 +227,12 @@
       data: function () {
         return {
           msgBox: [
-            '我住优客逸家2年了',
-            '优客逸家的服务还是可以！',
-            '优客的的官方APP是‘喵了隔壁’？',
-            '喵了隔壁的，该你出牌了'
+            '你的牌打得太好了',
+            '快点吧，我等到花儿也谢了！',
+            '不要走，决战到天亮。',
+            '和你合作真是太愉快了',
+            '你是GG还是MM？',
+            '不要吵了，专心玩游戏吧！',
           ],
           msgList: [],//聊天消息
 
@@ -312,6 +317,15 @@
           this.client.on('LOGIN_FAIL', function (data) {
             layer.closeAll();
             layer.msg(data.msg);
+          }.bind(this));
+
+          this.client.on('QUICK_JOIN', function (data) {
+            if (data.success) {
+              this.client.emit('SITDOWN', { deskId: data.deskId, posId: data.posId })
+            } else {
+              layer.closeAll();
+              layer.msg('快速加入失败');
+            }
           }.bind(this));
 
 
@@ -750,6 +764,10 @@
           if (msg) {
             this.client.emit('USER_MESSAGE', msg);
           }
+        },
+        quickJoin: function () {
+          layer.load({ type: 3 });
+          this.client.emit('QUICK_JOIN');
         }
       }
     })

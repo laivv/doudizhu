@@ -256,6 +256,7 @@
 
         .house {
             background: #555;
+            padding-top:40px;
         }
 
         .desk {
@@ -623,6 +624,15 @@
         }
         .msg-item-time{
             padding-right: 10px;
+        }
+        .quick-bar{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            box-sizing: border-box;
+            padding: 5px 30px;
+            background: rgba(0,0,0,0.2);
         }
         .scroll-bar::-webkit-scrollbar {
             width: 10px;    
