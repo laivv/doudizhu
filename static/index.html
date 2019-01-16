@@ -198,7 +198,7 @@
           </div>
         </div>
         <input type="text" class="input msg-input" ref="msgInput" @keyup.enter="sendMessage(false)">
-        <select class="input msg-input msg-select" style="width:15px;" @change="sendMessage($event)">
+        <select ref="msgSelect" class="input msg-input msg-select" style="width:15px;" @change="sendMessage($event)">
           <option v-for="item in msgBox" :value="item">{{item}}</option>
         </select>
         <button class="msg-btn" @click="sendMessage(false)">发送</button>
@@ -338,7 +338,9 @@
             }.bind(this))
             this.posState.self.isDizhu = false;
             //this.msgList = [];
-
+            this.$nextTick(function(){
+                this.$refs.msgSelect.value = '';
+            });
             layer.closeAll();
           }.bind(this));
 
